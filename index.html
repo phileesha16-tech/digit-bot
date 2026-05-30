@@ -3132,9 +3132,9 @@
 
 
   function loginWithOAuth() {
-    // oauth.deriv.com works for both old and new Deriv accounts
     var appId = '33pQNMCqRHLfXUnMSr1ss';
-    var oauthUrl = 'https://oauth.deriv.com/oauth2/authorize?app_id=' + appId + '&response_type=token';
+    var redirectUri = encodeURIComponent('https://phileesha16-tech.github.io/digit-bot/');
+    var oauthUrl = 'https://oauth.deriv.com/oauth2/authorize?app_id=' + appId + '&redirect_uri=' + redirectUri + '&response_type=token';
     window.location.href = oauthUrl;
   }
 
