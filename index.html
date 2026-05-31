@@ -2848,7 +2848,7 @@
         var acctHtml = '<div style="margin-bottom:10px;font-size:11px;color:var(--dim);">SELECT ACCOUNT</div>';
         accounts.forEach(function(acc) {
           var label = (acc.is_virtual ? 'Demo' : 'Real') + ' | ' + (acc.currency || 'USD') + ' | ' + acc.account_id;
-          acctHtml += '<button onclick="connectToAccount('' + acc.account_id + '')" style="display:block;width:100%;padding:8px;margin-bottom:6px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;text-align:left;font-size:12px;">' + label + '</button>';
+          acctHtml += '<button onclick="connectToAccount(\"' + acc.account_id + '\")" style="display:block;width:100%;padding:8px;margin-bottom:6px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;text-align:left;font-size:12px;">' + label + '</button>';
         });
         document.getElementById('tokenError').innerHTML = acctHtml;
         document.getElementById('tokenError').style.display = '';
@@ -3060,37 +3060,10 @@
 
   // ── Live Tick Feed ───────────────────────────────────────────────────────────
   function startLiveTickFeed(token) {
-    if (derivTickWs) { try { derivTickWs.close(); } catch(e){} }
-    var ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
-    derivTickWs = ws;
-
-    ws.onopen = function() {
-      ws.send(JSON.stringify({ authorize: token }));
-    };
-
-    var authorized = false;
-    ws.onmessage = function(e) {
-      var msg = JSON.parse(e.data);
-      if (msg.msg_type === 'authorize' && !msg.error && !authorized) {
-        authorized = true;
-        ws.send(JSON.stringify({ ticks: currentSymbol.id, subscribe: 1 }));
-      }
-      if (msg.msg_type === 'tick' && msg.tick) {
-        // Only apply if this tick is for the currently selected symbol
-        if (msg.tick.symbol === currentSymbol.id) {
-          applyLiveTick(msg.tick.quote);
-        }
-      }
-    };
-
-    ws.onclose = function() {
-      usingLiveTicks = false;
-      if (activeAccount && activeAccount.token) {
-        setTimeout(function() { startLiveTickFeed(activeAccount.token); }, 5000);
-      }
-    };
-
-    ws.onerror = function() { usingLiveTicks = false; };
+    // Live tick feed via the backend WebSocket proxy
+    // For now just use demo ticks - live ticks come through the main account WebSocket
+    usingLiveTicks = false;
+    // Demo ticker will run automatically via setInterval in startTicker()
   }
 
   function switchLiveTickSymbol(symbolId) {
