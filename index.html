@@ -2743,6 +2743,36 @@
     }
   }
 
+  function connectToAccount(accountId) {
+    var accounts = window._patAccounts || [];
+    var token = window._patToken || '';
+    var account = null;
+    for (var i = 0; i < accounts.length; i++) {
+      if (accounts[i].account_id === accountId) { account = accounts[i]; break; }
+    }
+    if (!account) return;
+    document.getElementById('tokenError').style.display = 'none';
+    showPanel('panelConnecting');
+    document.getElementById('connectingMsg').textContent = 'AUTHORIZING ' + accountId + '...';
+    fetch(BACKEND_URL + '/api/otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token, accountId: accountId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(otpData) {
+      if (otpData.errors && otpData.errors.length > 0) {
+        showPanel('panelToken');
+        showTokenError('❌ ' + otpData.errors[0].message);
+        return;
+      }
+      var wsUrl = otpData.data && otpData.data.url;
+      if (!wsUrl) { showPanel('panelToken'); showTokenError('❌ Could not get WebSocket URL.'); return; }
+      connectPATWebSocket(wsUrl, token, account);
+    })
+    .catch(function(e) { showPanel('panelToken'); showTokenError('❌ Network error.'); });
+  }
+
   function onAccountConnected(ws, loginid, currency, isVirtual, bal) {
     derivWs = ws;
     activeAccount = { id: loginid, currency: currency, balance: bal, isVirtual: isVirtual, token: null };
@@ -2810,6 +2840,24 @@
       }
       // Find account matching type
       var accounts = data.data || [];
+      console.log('All accounts:', JSON.stringify(accounts));
+
+      // Show account picker if multiple accounts
+      if (accounts.length > 1) {
+        showPanel('panelToken');
+        var acctHtml = '<div style="margin-bottom:10px;font-size:11px;color:var(--dim);">SELECT ACCOUNT</div>';
+        accounts.forEach(function(acc) {
+          var label = (acc.is_virtual ? 'Demo' : 'Real') + ' | ' + (acc.currency || 'USD') + ' | ' + acc.account_id;
+          acctHtml += '<button onclick="connectToAccount('' + acc.account_id + '')" style="display:block;width:100%;padding:8px;margin-bottom:6px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;text-align:left;font-size:12px;">' + label + '</button>';
+        });
+        document.getElementById('tokenError').innerHTML = acctHtml;
+        document.getElementById('tokenError').style.display = '';
+        // Store token and accounts for later use
+        window._patToken = token;
+        window._patAccounts = accounts;
+        return;
+      }
+
       var account = null;
       for (var i = 0; i < accounts.length; i++) {
         var acc = accounts[i];
