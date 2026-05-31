@@ -2200,26 +2200,90 @@
     if (contract) return;
     if (selectedDigit === null) { alert('Select a digit first'); return; }
     var stake = parseFloat(document.getElementById('stakeInput').value);
-    if (isNaN(stake) || stake < 1) { alert('Enter a valid stake'); return; }
-    if (stake > balance) { alert('Insufficient balance'); return; }
+    if (isNaN(stake) || stake < 0.35) { alert('Enter a valid stake (min $0.35)'); return; }
     var ticks = parseInt(document.getElementById('ticksInput').value, 10) || 5;
-    balance -= stake;
-    updateBalance();
-    contract = {
-      digit: selectedDigit,
-      stake: stake,
-      ticks: ticks,
-      ticksLeft: ticks,
-      matches: 0,
-      payout: parseFloat((stake * 8.5).toFixed(2)),
-      startTime: new Date().toISOString(),
-      id: 'CON_' + Date.now()
-    };
-    document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE';
-    document.getElementById('buyBtn').classList.add('active-contract');
-    document.getElementById('buyBtn').disabled = true;
-    showContractStatus();
-    updateXml();
+
+    // If connected to real account, send real order via WebSocket
+    if (activeAccount && activeAccount.ws && activeAccount.ws.readyState === 1) {
+      document.getElementById('buyBtn').textContent = 'SENDING ORDER...';
+      document.getElementById('buyBtn').disabled = true;
+
+      // Step 1: Get proposal first
+      var proposalReqId = Date.now();
+      activeAccount.ws.send(JSON.stringify({
+        proposal: 1,
+        req_id: proposalReqId,
+        amount: stake,
+        basis: 'stake',
+        contract_type: 'DIGITDIFF',
+        currency: activeAccount.currency || 'USD',
+        duration: ticks,
+        duration_unit: 't',
+        symbol: currentSymbol.id,
+        barrier: selectedDigit.toString()
+      }));
+
+      // Handle proposal response
+      var proposalHandler = function(e) {
+        try {
+          var msg = JSON.parse(e.data);
+          if (msg.req_id !== proposalReqId) return;
+          activeAccount.ws.removeEventListener('message', proposalHandler);
+
+          if (msg.error) {
+            document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
+            document.getElementById('buyBtn').disabled = false;
+            showToast('Order error: ' + msg.error.message, 'error');
+            return;
+          }
+          if (msg.msg_type === 'proposal' && msg.proposal) {
+            // Step 2: Buy the proposal
+            activeAccount.ws.send(JSON.stringify({
+              buy: msg.proposal.id,
+              price: msg.proposal.ask_price
+            }));
+          }
+        } catch(ex) {}
+      };
+      activeAccount.ws.addEventListener('message', proposalHandler);
+
+      // Set up local contract tracking
+      contract = {
+        digit: selectedDigit,
+        stake: stake,
+        ticks: ticks,
+        ticksLeft: ticks,
+        matches: 0,
+        payout: parseFloat((stake * 8.5).toFixed(2)),
+        startTime: new Date().toISOString(),
+        id: 'CON_' + Date.now(),
+        finished: false
+      };
+      document.getElementById('buyBtn').classList.add('active-contract');
+      showContractStatus();
+      updateXml();
+    } else {
+      // Demo mode - simulate locally
+      if (stake > balance) { alert('Insufficient balance'); return; }
+      balance -= stake;
+      updateBalance();
+      contract = {
+        digit: selectedDigit,
+        stake: stake,
+        ticks: ticks,
+        ticksLeft: ticks,
+        matches: 0,
+        payout: parseFloat((stake * 8.5).toFixed(2)),
+        startTime: new Date().toISOString(),
+        id: 'CON_' + Date.now(),
+        finished: false
+      };
+      document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE';
+      document.getElementById('buyBtn').classList.add('active-contract');
+      document.getElementById('buyBtn').disabled = true;
+      showContractStatus();
+      updateXml();
+    }
   }
 
   function processTick(digit) {
@@ -2775,41 +2839,84 @@
 
   function onAccountConnected(ws, loginid, currency, isVirtual, bal) {
     derivWs = ws;
-    activeAccount = { id: loginid, currency: currency, balance: bal, isVirtual: isVirtual, token: null };
+    activeAccount = { id: loginid, currency: currency, balance: bal, isVirtual: isVirtual, token: null, ws: ws };
     derivAccounts = [{ id: loginid, currency: currency, isVirtual: isVirtual, token: null }];
     balance = bal;
+    // Subscribe to balance updates
     ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
-    document.getElementById('connectingMsg').textContent = 'SUBSCRIBING TO LIVE TICKS...';
+    // Subscribe to live ticks for current symbol
+    ws.send(JSON.stringify({ ticks: currentSymbol.id, subscribe: 1 }));
+    document.getElementById('connectingMsg').textContent = 'CONNECTED!';
     startLiveTickFeed(null);
     onLoginSuccess();
     ws.onmessage = function(ev) {
       try {
         var m = JSON.parse(ev.data);
-        if (m.msg_type === 'balance' && activeAccount) {
-          activeAccount.balance = m.balance.balance;
-          balance = parseFloat(m.balance.balance);
-          var el = document.getElementById('balance');
-          if (el) el.textContent = balance.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+        // Handle all message types
+        handleWsMessage(m, ws);
+        // Live ticks from Deriv
+        if (m.msg_type === 'tick' && m.tick) {
+          if (m.tick.symbol === currentSymbol.id) {
+            usingLiveTicks = true;
+            applyLiveTick(m.tick.quote);
+          }
         }
-        if (m.msg_type === 'tick') { applyLiveTick(m.tick.quote); }
-        if (m.msg_type === 'buy' || m.msg_type === 'proposal_open_contract') { handleWsMessage(m, ws); }
-      } catch(ex) {}
+      } catch(ex) { console.error('WS message error:', ex); }
+    };
+    ws.onclose = function() {
+      usingLiveTicks = false;
+      activeAccount = null;
+      showToast('Disconnected from Deriv', '');
     };
   }
 
   function handleWsMessage(msg, ws) {
     if (!msg || !msg.msg_type) return;
+
+    // Handle balance updates
+    if (msg.msg_type === 'balance' && msg.balance) {
+      balance = parseFloat(msg.balance.balance);
+      updateBalance();
+    }
+
+    // Handle buy confirmation
     if (msg.msg_type === 'buy' && msg.buy) {
       if (contract) {
         contract.contractId = msg.buy.contract_id;
+        // Update balance from buy response
+        if (msg.buy.balance_after !== undefined) {
+          balance = parseFloat(msg.buy.balance_after);
+          updateBalance();
+        }
+        document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE';
         ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: msg.buy.contract_id, subscribe: 1 }));
+        showToast('Order placed! Contract: ' + msg.buy.contract_id, '');
       }
     }
+
+    // Handle buy error
+    if (msg.msg_type === 'buy' && msg.error) {
+      if (contract) { contract = null; }
+      document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
+      document.getElementById('buyBtn').classList.remove('active-contract');
+      document.getElementById('buyBtn').disabled = false;
+      showToast('Buy error: ' + msg.error.message, 'error');
+    }
+
+    // Handle contract result
     if (msg.msg_type === 'proposal_open_contract' && msg.proposal_open_contract) {
       var poc = msg.proposal_open_contract;
-      if (poc.is_expired || poc.is_sold) {
+      if ((poc.is_expired || poc.is_sold) && poc.status) {
         if (contract && !contract.finished) {
           contract.finished = true;
+          // Update with real result from Deriv
+          var won = poc.status === 'won';
+          contract.matches = won ? 1 : 0;
+          contract.payout = won ? parseFloat(poc.payout || contract.payout) : 0;
+          if (poc.balance_after !== undefined) {
+            balance = parseFloat(poc.balance_after);
+            updateBalance();
+          }
           endContract();
         }
       }
