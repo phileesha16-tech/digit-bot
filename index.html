@@ -2209,7 +2209,7 @@
       fetch(BACKEND_URL + '/api/contract-result', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wsUrl: window._derivWsUrl, contractId: contractId })
+        body: JSON.stringify({ token: window._patToken, accountId: activeAccount.id, contractId: contractId })
       }).then(function(r) { return r.json(); })
         .then(function(data) {
           var c = data.data;
@@ -2271,7 +2271,8 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          wsUrl: window._derivWsUrl,
+          token: window._patToken,
+          accountId: activeAccount.id,
           digit: selectedDigit,
           stake: stake,
           ticks: ticks,
