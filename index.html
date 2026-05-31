@@ -2196,6 +2196,61 @@
   }
 
   // Contract logic
+  function pollContractResult(contractId, ticks) {
+    // Poll every second for contract result
+    var maxPolls = (ticks + 5) * 2; // extra buffer
+    var polls = 0;
+    var interval = setInterval(function() {
+      polls++;
+      if (polls > maxPolls || !contract) {
+        clearInterval(interval);
+        return;
+      }
+      fetch(BACKEND_URL + '/api/contract/' + activeAccount.id + '/' + contractId + '?token=' + encodeURIComponent(window._patToken))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var c = data.data;
+          if (!c || !contract) return;
+          // Update balance
+          if (c.account_balance !== undefined) {
+            balance = parseFloat(c.account_balance);
+            updateBalance();
+          }
+          // Check if settled
+          if (c.status === 'won' || c.status === 'lost' || c.is_expired || c.is_sold) {
+            clearInterval(interval);
+            if (contract && !contract.finished) {
+              contract.finished = true;
+              contract.matches = c.status === 'won' ? 1 : 0;
+              contract.payout = c.status === 'won' ? parseFloat(c.payout || contract.payout) : 0;
+              // Update balance from real result
+              if (c.balance_after !== undefined) {
+                balance = parseFloat(c.balance_after);
+                updateBalance();
+              }
+              endContract();
+              // Refresh balance from API
+              refreshBalance();
+            }
+          }
+        })
+        .catch(function() {});
+    }, 1000);
+  }
+
+  function refreshBalance() {
+    if (!activeAccount || !window._patToken) return;
+    fetch(BACKEND_URL + '/api/balance/' + activeAccount.id + '?token=' + encodeURIComponent(window._patToken))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.data && data.data.balance !== undefined) {
+          balance = parseFloat(data.data.balance);
+          updateBalance();
+        }
+      })
+      .catch(function() {});
+  }
+
   function placeContract() {
     if (contract) return;
     if (selectedDigit === null) { alert('Select a digit first'); return; }
@@ -2203,51 +2258,55 @@
     if (isNaN(stake) || stake < 0.35) { alert('Enter a valid stake (min $0.35)'); return; }
     var ticks = parseInt(document.getElementById('ticksInput').value, 10) || 5;
 
-    // If connected to real account, send real order via WebSocket
-    if (activeAccount && activeAccount.ws && activeAccount.ws.readyState === 1) {
+    // If connected to real account, send real order via backend REST API
+    if (activeAccount && window._patToken && activeAccount.id) {
       document.getElementById('buyBtn').textContent = 'SENDING ORDER...';
       document.getElementById('buyBtn').disabled = true;
 
-      // Step 1: Get proposal first
-      var proposalReqId = Date.now();
-      activeAccount.ws.send(JSON.stringify({
-        proposal: 1,
-        req_id: proposalReqId,
-        amount: stake,
-        basis: 'stake',
-        contract_type: 'DIGITDIFF',
-        currency: activeAccount.currency || 'USD',
-        duration: ticks,
-        duration_unit: 't',
-        symbol: currentSymbol.id,
-        barrier: selectedDigit.toString()
-      }));
+      // Place trade via backend REST API
+      fetch(BACKEND_URL + '/api/trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: window._patToken,
+          accountId: activeAccount.id,
+          digit: selectedDigit,
+          stake: stake,
+          ticks: ticks,
+          symbol: currentSymbol.id
+        })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) {
+          document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
+          document.getElementById('buyBtn').classList.remove('active-contract');
+          document.getElementById('buyBtn').disabled = false;
+          showToast('Trade error: ' + data.error, 'error');
+          contract = null;
+          return;
+        }
+        // Trade placed successfully
+        var contractId = data.data && (data.data.contract_id || data.data.id);
+        if (contract) {
+          contract.contractId = contractId;
+          contract.realTrade = true;
+        }
+        showToast('Order placed!', '');
+        // Poll for result
+        if (contractId) {
+          pollContractResult(contractId, ticks);
+        }
+      })
+      .catch(function(e) {
+        document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
+        document.getElementById('buyBtn').classList.remove('active-contract');
+        document.getElementById('buyBtn').disabled = false;
+        showToast('Network error placing trade', 'error');
+        contract = null;
+      });
 
-      // Handle proposal response
-      var proposalHandler = function(e) {
-        try {
-          var msg = JSON.parse(e.data);
-          if (msg.req_id !== proposalReqId) return;
-          activeAccount.ws.removeEventListener('message', proposalHandler);
-
-          if (msg.error) {
-            document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
-            document.getElementById('buyBtn').disabled = false;
-            showToast('Order error: ' + msg.error.message, 'error');
-            return;
-          }
-          if (msg.msg_type === 'proposal' && msg.proposal) {
-            // Step 2: Buy the proposal
-            activeAccount.ws.send(JSON.stringify({
-              buy: msg.proposal.id,
-              price: msg.proposal.ask_price
-            }));
-          }
-        } catch(ex) {}
-      };
-      activeAccount.ws.addEventListener('message', proposalHandler);
-
-      // Set up local contract tracking
+      // Set up local contract tracking immediately
       contract = {
         digit: selectedDigit,
         stake: stake,
@@ -2257,7 +2316,8 @@
         payout: parseFloat((stake * 8.5).toFixed(2)),
         startTime: new Date().toISOString(),
         id: 'CON_' + Date.now(),
-        finished: false
+        finished: false,
+        realTrade: true
       };
       document.getElementById('buyBtn').classList.add('active-contract');
       showContractStatus();
