@@ -2206,8 +2206,11 @@
         clearInterval(interval);
         return;
       }
-      fetch(BACKEND_URL + '/api/contract/' + activeAccount.id + '/' + contractId + '?token=' + encodeURIComponent(window._patToken))
-        .then(function(r) { return r.json(); })
+      fetch(BACKEND_URL + '/api/contract-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wsUrl: window._derivWsUrl, contractId: contractId })
+      }).then(function(r) { return r.json(); })
         .then(function(data) {
           var c = data.data;
           if (!c || !contract) return;
@@ -2268,8 +2271,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          token: window._patToken,
-          accountId: activeAccount.id,
+          wsUrl: window._derivWsUrl,
           digit: selectedDigit,
           stake: stake,
           ticks: ticks,
@@ -3083,6 +3085,9 @@
   }
 
   function connectPATWebSocket(wsUrl, token, account) {
+    // Store wsUrl for trade execution
+    window._derivWsUrl = wsUrl;
+
     // Connect via backend WebSocket proxy to bypass CORS
     var proxyUrl = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://') +
       '/ws?wsUrl=' + encodeURIComponent(wsUrl);
