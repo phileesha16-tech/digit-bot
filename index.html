@@ -2842,32 +2842,28 @@
       var accounts = data.data || [];
       console.log('All accounts:', JSON.stringify(accounts));
 
-      // Show account picker if multiple accounts
+      // Store all accounts globally
+      window._patToken = token;
+      window._patAccounts = accounts;
+
+      // If multiple accounts, show a select dropdown and a confirm button
       if (accounts.length > 1) {
         showPanel('panelToken');
-        var acctHtml = '<div style="margin-bottom:10px;font-size:11px;color:var(--dim);">SELECT ACCOUNT</div>';
+        var selectHtml = '<div style="margin-bottom:8px;font-size:10px;letter-spacing:2px;color:var(--dim);">SELECT ACCOUNT TO CONNECT</div>';
+        selectHtml += '<select id="acctPicker" style="width:100%;padding:8px;background:#0c1320;border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;margin-bottom:10px;">';
         accounts.forEach(function(acc) {
           var label = (acc.is_virtual ? 'Demo' : 'Real') + ' | ' + (acc.currency || 'USD') + ' | ' + acc.account_id;
-          acctHtml += '<button data-id="' + acc.account_id + '" style="display:block;width:100%;padding:8px;margin-bottom:6px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;text-align:left;font-size:12px;">' + label + '</button>';
+          selectHtml += '<option value="' + acc.account_id + '">' + label + '</option>';
         });
-        // Store token and accounts for later use
-        window._patToken = token;
-        window._patAccounts = accounts;
-        // Show account picker in a clean way
+        selectHtml += '</select>';
+        selectHtml += '<button id="acctConfirmBtn" style="width:100%;padding:10px;background:var(--accent2);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:2px;">CONNECT SELECTED ACCOUNT</button>';
         var errEl = document.getElementById('tokenError');
-        errEl.style.display = '';
-        errEl.style.background = 'transparent';
-        errEl.style.border = 'none';
-        errEl.style.padding = '0';
-        errEl.innerHTML = acctHtml;
-        // Make buttons functional
-        var btns = errEl.querySelectorAll('button');
-        btns.forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            var aid = this.getAttribute('data-id');
-            connectToAccount(aid);
-          });
-        });
+        errEl.style.cssText = 'display:block;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:12px;';
+        errEl.innerHTML = selectHtml;
+        document.getElementById('acctConfirmBtn').onclick = function() {
+          var sel = document.getElementById('acctPicker');
+          if (sel) connectToAccount(sel.value);
+        };
         return;
       }
 
