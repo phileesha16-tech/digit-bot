@@ -2112,8 +2112,12 @@
 
   // Ticker engine (simulated — paused when live ticks active)
   function startTicker() {
-    generateTick();
-    setInterval(function() { if (!usingLiveTicks) generateTick(); }, 1000);
+    try { generateTick(); } catch(e) { console.error('generateTick error:', e); }
+    setInterval(function() {
+      if (!usingLiveTicks) {
+        try { generateTick(); } catch(e) { console.error('ticker error:', e); }
+      }
+    }, 1000);
   }
 
   function generateTick() {
@@ -2121,9 +2125,46 @@
                    'R_10_1s': 0.5, 'R_25_1s': 1.0, 'R_50_1s': 1.8, 'R_75_1s': 2.5, 'R_100_1s': 3.2 };
     var vol = volMap[currentSymbol.id] || 2.5;
     var change = (Math.random() - 0.5) * vol;
-    price = Math.max(1000, price + change);
-    // Route through applyLiveTick so bot hooks fire in demo mode too
-    applyLiveTick(price);
+    var newPrice = Math.max(1000, price + change);
+    var priceStr = newPrice.toFixed(2);
+    var lastD = parseInt(priceStr.charAt(priceStr.length - 1), 10);
+    var prevPrice = price;
+    price = newPrice;
+    var priceDiff = price - prevPrice;
+    var pctChange = prevPrice > 0 ? ((priceDiff / prevPrice) * 100).toFixed(4) : '0.0000';
+
+    // Update price display
+    var el = document.getElementById('tickerPrice');
+    if (el) el.innerHTML = priceStr.slice(0,-1) + '<span class="last-digit" id="lastDigit">' + lastD + '</span>';
+
+    // Update change display
+    var changeEl = document.getElementById('tickerChange');
+    if (changeEl) {
+      changeEl.textContent = (priceDiff >= 0 ? '+' : '') + pctChange + '%';
+      changeEl.style.color = priceDiff >= 0 ? 'var(--win)' : 'var(--lose)';
+    }
+
+    // Update digit history
+    digitHistory.unshift(lastD);
+    if (digitHistory.length > 20) digitHistory.pop();
+    recentWindow.unshift(lastD);
+    if (recentWindow.length > windowSize) recentWindow.pop();
+    freqMap[lastD]++;
+
+    renderDigitHistory();
+    updateFreqChart();
+    if (autoPredict) { runPredictor(); }
+    if (contract) { processTick(lastD); }
+
+    // Drive bot in demo mode
+    if (bot && bot.running && !contract) {
+      if (bot.cooldownTick) {
+        bot.cooldownTick = false;
+        setTimeout(function() { if (bot.running && !contract) botPlaceTrade(); }, 300);
+      } else {
+        botPlaceTrade();
+      }
+    }
   }
 
   function renderDigitHistory() {
@@ -2567,7 +2608,7 @@
   var derivTickWs = null; // separate WS for live ticks
   var derivAccounts = [];
   var activeAccount = null;
-  var DERIV_APP_ID = '33pQNMCqRHLfXUnMSr1ss'; // User's registered app ID
+  var DERIV_APP_ID = '1089'; // Public test app_id - works with ws.binaryws.com
   var usingLiveTicks = false;
 
   // ── Saved Token (localStorage) ───────────────────────────────────────────────
@@ -2645,9 +2686,10 @@
 
   // ── API Token login ──────────────────────────────────────────────────────────
   var WS_ENDPOINTS = [
-    'wss://ws.derivws.com/websockets/v3',
     'wss://ws.binaryws.com/websockets/v3',
-    'wss://frontend.binaryws.com/websockets/v3'
+    'wss://ws.derivws.com/websockets/v3',
+    'wss://frontend.binaryws.com/websockets/v3',
+    'wss://green.binaryws.com/websockets/v3'
   ];
 
   function isDerivToken(t) {
@@ -2691,9 +2733,14 @@
       return;
     }
     showPanel('panelConnecting');
-    document.getElementById('connectingMsg').textContent = 'CONNECTING TO DERIV...';
-    // Try direct WebSocket authorize for all token types (works for both a1- and pat_)
-    tryConnectWithFallback(token, 0);
+    // Route PAT tokens through backend, others direct
+    if (token.startsWith('pat_')) {
+      document.getElementById('connectingMsg').textContent = 'CONNECTING VIA BACKEND...';
+      connectWithPAT(token);
+    } else {
+      document.getElementById('connectingMsg').textContent = 'CONNECTING TO DERIV...';
+      tryConnectWithFallback(token, 0);
+    }
   }
 
   function onAccountConnected(ws, loginid, currency, isVirtual, bal) {
@@ -2739,17 +2786,20 @@
     }
   }
 
+  // Backend server URL - update this after deploying to Render.com
+  var BACKEND_URL = 'https://deriv-bot-backend-3ue8.onrender.com';
+
   function connectWithPAT(token) {
-    // Step 1: Get account list via REST API using PAT as Bearer token
     var acctType = document.querySelector('input[name="acctType"]:checked');
     var isDemo = acctType && acctType.value === 'demo';
 
-    fetch('https://api.derivws.com/trading/v1/options/accounts', {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'Deriv-App-ID': DERIV_APP_ID
-      }
+    document.getElementById('connectingMsg').textContent = 'FETCHING ACCOUNTS...';
+
+    // Use our backend to bypass CORS
+    fetch(BACKEND_URL + '/api/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token })
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
@@ -2776,12 +2826,10 @@
       document.getElementById('connectingMsg').textContent = 'AUTHORIZING ' + account.account_id + '...';
 
       // Step 2: Get OTP for WebSocket connection
-      fetch('https://api.derivws.com/trading/v1/options/accounts/' + account.account_id + '/otp', {
+      fetch(BACKEND_URL + '/api/otp', {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Deriv-App-ID': DERIV_APP_ID
-        }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token, accountId: account.account_id })
       })
       .then(function(r) { return r.json(); })
       .then(function(otpData) {
@@ -2811,10 +2859,13 @@
   }
 
   function connectPATWebSocket(wsUrl, token, account) {
+    // Connect via backend WebSocket proxy to bypass CORS
+    var proxyUrl = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://') +
+      '/ws?wsUrl=' + encodeURIComponent(wsUrl);
     var ws;
-    try { ws = new WebSocket(wsUrl); } catch(e) {
+    try { ws = new WebSocket(proxyUrl); } catch(e) {
       showPanel('panelToken');
-      showTokenError('❌ Could not connect to Deriv WebSocket.');
+      showTokenError('❌ Could not connect to backend server.');
       return;
     }
     ws.onopen = function() {
@@ -2870,11 +2921,15 @@
         try { ws.close(); } catch(e){}
         tryConnectWithFallback(token, endpointIndex + 1);
       }
-    }, 8000);
+    }, 15000);
 
     ws.onopen = function() {
       document.getElementById('connectingMsg').textContent = 'AUTHORIZING...';
-      ws.send(JSON.stringify({ authorize: token }));
+      // Try both token formats - pat_ tokens may need 'token' field
+      var authMsg = token.startsWith('pat_')
+        ? JSON.stringify({ authorize: token, add_fiat: 1 })
+        : JSON.stringify({ authorize: token });
+      ws.send(authMsg);
     };
 
     ws.onmessage = function(e) {
@@ -2958,7 +3013,7 @@
   // ── Live Tick Feed ───────────────────────────────────────────────────────────
   function startLiveTickFeed(token) {
     if (derivTickWs) { try { derivTickWs.close(); } catch(e){} }
-    var ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+    var ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
     derivTickWs = ws;
 
     ws.onopen = function() {
@@ -3002,10 +3057,9 @@
   }
 
   function applyLiveTick(tickPrice) {
-    usingLiveTicks = true;
     var priceStr = tickPrice.toFixed(2);
     var lastD = parseInt(priceStr.charAt(priceStr.length - 1), 10);
-    var prevPrice = price;
+    var prevPrice = price || tickPrice;
     price = tickPrice;
     var change = price - prevPrice;
     var intPart = priceStr.slice(0, -1);
@@ -3028,7 +3082,7 @@
 
   function reconnectDerivWs() {
     if (!activeAccount || !activeAccount.token) return;
-    var ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+    var ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
     ws.onopen = function() { ws.send(JSON.stringify({ authorize: activeAccount.token })); };
     ws.onmessage = function(e) {
       var msg = JSON.parse(e.data);
@@ -3132,9 +3186,17 @@
 
 
   function loginWithOAuth() {
-    var appId = '33pQNMCqRHLfXUnMSr1ss';
-    var redirectUri = encodeURIComponent('https://phileesha16-tech.github.io/digit-bot/');
-    var oauthUrl = 'https://oauth.deriv.com/oauth2/authorize?app_id=' + appId + '&redirect_uri=' + redirectUri + '&response_type=token';
+    // Use new Deriv auth endpoint with PKCE for new developer accounts
+    var clientId = '33pQNMCqRHLfXUnMSr1ss';
+    var redirectUri = 'https://phileesha16-tech.github.io/digit-bot/';
+    var state = Math.random().toString(36).substring(2);
+    sessionStorage.setItem('oauth_state', state);
+    var oauthUrl = 'https://auth.deriv.com/oauth2/auth' +
+      '?response_type=code' +
+      '&client_id=' + clientId +
+      '&redirect_uri=' + encodeURIComponent(redirectUri) +
+      '&scope=trade+read' +
+      '&state=' + state;
     window.location.href = oauthUrl;
   }
 
@@ -3167,7 +3229,7 @@
     var done = false;
     var t = setTimeout(function() {
       if (!done) { done = true; try{ws.close();}catch(e){} connectWithLegacyWS(token, endpointIndex+1); }
-    }, 8000);
+    }, 15000);
     ws.onopen = function() {
       clearTimeout(t);
       ws.send(JSON.stringify({ authorize: token }));
