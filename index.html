@@ -2848,13 +2848,26 @@
         var acctHtml = '<div style="margin-bottom:10px;font-size:11px;color:var(--dim);">SELECT ACCOUNT</div>';
         accounts.forEach(function(acc) {
           var label = (acc.is_virtual ? 'Demo' : 'Real') + ' | ' + (acc.currency || 'USD') + ' | ' + acc.account_id;
-          acctHtml += '<button onclick="connectToAccount(\"' + acc.account_id + '\")" style="display:block;width:100%;padding:8px;margin-bottom:6px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;text-align:left;font-size:12px;">' + label + '</button>';
+          acctHtml += '<button data-id="' + acc.account_id + '" style="display:block;width:100%;padding:8px;margin-bottom:6px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;text-align:left;font-size:12px;">' + label + '</button>';
         });
-        document.getElementById('tokenError').innerHTML = acctHtml;
-        document.getElementById('tokenError').style.display = '';
         // Store token and accounts for later use
         window._patToken = token;
         window._patAccounts = accounts;
+        // Show account picker in a clean way
+        var errEl = document.getElementById('tokenError');
+        errEl.style.display = '';
+        errEl.style.background = 'transparent';
+        errEl.style.border = 'none';
+        errEl.style.padding = '0';
+        errEl.innerHTML = acctHtml;
+        // Make buttons functional
+        var btns = errEl.querySelectorAll('button');
+        btns.forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var aid = this.getAttribute('data-id');
+            connectToAccount(aid);
+          });
+        });
         return;
       }
 
