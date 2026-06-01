@@ -2994,6 +2994,11 @@
   // Backend server URL - update this after deploying to Render.com
   var BACKEND_URL = 'https://deriv-bot-backend-3ue8.onrender.com';
 
+  // Keep backend alive - ping every 10 minutes to prevent Render free tier sleep
+  setInterval(function() {
+    fetch(BACKEND_URL + '/').catch(function() {});
+  }, 600000);
+
   function connectWithPAT(token) {
     var acctType = document.querySelector('input[name="acctType"]:checked');
     var isDemo = acctType && acctType.value === 'demo';
