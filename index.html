@@ -2232,8 +2232,10 @@
                 updateBalance();
               }
               endContract();
-              // Refresh balance from API
+              // Refresh balance from API multiple times to catch update
               refreshBalance();
+              setTimeout(refreshBalance, 2000);
+              setTimeout(refreshBalance, 5000);
             }
           }
         })
@@ -2300,6 +2302,8 @@
         if (contractId) {
           pollContractResult(contractId, ticks);
         }
+        // Refresh balance after trade placed
+        setTimeout(refreshBalance, 3000);
       })
       .catch(function(e) {
         document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
