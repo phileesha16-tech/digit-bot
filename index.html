@@ -2225,6 +2225,7 @@
             clearInterval(interval);
             if (contract && !contract.finished) {
               contract.finished = true;
+              contract.realResult = (c.status === 'won');
               contract.matches = c.status === 'won' ? 1 : 0;
               contract.payout = c.status === 'won' ? parseFloat(c.payout || contract.payout) : 0;
               // Update balance from real result
@@ -2293,7 +2294,8 @@
           digit: selectedDigit,
           stake: stake,
           ticks: ticks,
-          symbol: currentSymbol.id
+          symbol: currentSymbol.id,
+          contractType: 'DIGITMATCH'
         })
       })
       .then(function(r) { return r.json(); })
@@ -2375,12 +2377,12 @@
     contract.ticksLeft--;
     updateContractStatus();
     updateXml();
-    if (contract.ticksLeft === 0) { endContract(); }
+    if (contract.ticksLeft === 0 && !contract.realTrade) { endContract(); }
   }
 
   function endContract() {
     tradeLock = false; // Release trade lock
-    var won = contract.matches > 0;
+    var won = contract.realResult !== undefined ? contract.realResult : contract.matches > 0;
     var payout = won ? contract.payout : 0;
     var pnl = won ? payout - contract.stake : -contract.stake;
     if (won) balance += payout;
