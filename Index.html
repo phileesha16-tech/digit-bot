@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DIGIT BOT ∙ ML ENGINE</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #020508;
+    --panel: #080d12;
+    --border: #0f2a1a;
+    --green: #00ff88;
+    --green2: #00cc66;
+    --cyan: #00e5ff;
+    --red: #ff3355;
+    --yellow: #ffcc00;
+    --dim: #1a3a28;
+    --text: #b0ffd0;
+    --muted: #3a6a50;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,136,0.015) 2px, rgba(0,255,136,0.015) 4px);
+    pointer-events:none; z-index:0;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex; align-items: center; gap: 12px;
+    position: relative; z-index:1;
+  }
+  header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px; font-weight:900;
+    color: var(--green);
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px rgba(0,255,136,0.5);
+  }
+  .badge {
+    font-size: 9px; padding: 3px 8px;
+    border: 1px solid var(--green2);
+    color: var(--green2); letter-spacing: 2px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .main { padding: 16px; position:relative; z-index:1; }
+
+  /* Config */
+  .config-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 12px;
+  }
+  .field label {
+    display: block; font-size: 9px;
+    color: var(--muted); letter-spacing: 2px;
+    margin-bottom: 5px;
+  }
+  .field input, .field select {
+    width: 100%; background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--green); font-family: 'Share Tech Mono', monospace;
+    font-size: 12px; padding: 8px 10px;
+    outline: none;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--green2);
+    box-shadow: 0 0 10px rgba(0,255,136,0.1);
+  }
+  .field.full { grid-column: 1/-1; }
+
+  /* Prediction Panel */
+  .pred-panel {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    margin-bottom: 12px; overflow: hidden;
+  }
+  .pred-header {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--dim);
+  }
+  .pred-header span { font-size: 9px; letter-spacing: 2px; color: var(--muted); }
+  .pred-header strong { font-size: 10px; color: var(--cyan); letter-spacing: 1px; }
+
+  .engines {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+  }
+  .engine {
+    padding: 12px 10px; text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .engine:last-child { border-right: none; }
+  .engine-name { font-size: 8px; color: var(--muted); letter-spacing: 1px; margin-bottom: 6px; }
+  .engine-digit {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 28px; font-weight:900;
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(0,255,136,0.6);
+    line-height:1;
+  }
+  .engine-conf { font-size: 9px; color: var(--muted); margin-top: 4px; }
+  .engine-digit.loading { color: var(--muted); animation: blink 0.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
+
+  .final-pred {
+    border-top: 1px solid var(--border);
+    padding: 12px; display: flex; align-items: center; justify-content: space-between;
+    background: rgba(0,255,136,0.03);
+  }
+  .final-label { font-size: 9px; color: var(--muted); letter-spacing: 2px; }
+  .final-digit {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 36px; font-weight:900;
+    color: var(--yellow);
+    text-shadow: 0 0 30px rgba(255,204,0,0.6);
+  }
+  .consensus { font-size: 9px; color: var(--muted); text-align:right; }
+
+  /* Digit history bar */
+  .history-bar {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .digit-chip {
+    width: 28px; height: 28px;
+    display: flex; align-items:center; justify-content:center;
+    border: 1px solid var(--border);
+    font-size: 12px; font-weight: bold;
+    transition: all 0.3s;
+  }
+  .digit-chip.d0{color:#ff6b6b;border-color:#ff6b6b33}
+  .digit-chip.d1{color:#ffa94d;border-color:#ffa94d33}
+  .digit-chip.d2{color:#ffe066;border-color:#ffe06633}
+  .digit-chip.d3{color:#a9e34b;border-color:#a9e34b33}
+  .digit-chip.d4{color:#00ff88;border-color:#00ff8833}
+  .digit-chip.d5{color:#00e5ff;border-color:#00e5ff33}
+  .digit-chip.d6{color:#74c0fc;border-color:#74c0fc33}
+  .digit-chip.d7{color:#cc5de8;border-color:#cc5de833}
+  .digit-chip.d8{color:#f783ac;border-color:#f783ac33}
+  .digit-chip.d9{color:#ff6b6b;border-color:#ff6b6b33}
+  .digit-chip.new { box-shadow: 0 0 12px currentColor; }
+
+  /* Frequency chart */
+  .freq-chart { margin-bottom: 12px; }
+  .freq-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px;
+  }
+  .freq-label { width: 14px; font-size: 10px; text-align:right; color: var(--muted); }
+  .freq-bar-bg { flex:1; height: 10px; background: var(--dim); position:relative; }
+  .freq-bar-fill {
+    height: 100%; background: var(--green2);
+    transition: width 0.5s ease;
+  }
+  .freq-count { font-size: 9px; color: var(--muted); min-width:20px; text-align:right; }
+
+  /* Controls */
+  .controls { display: flex; gap: 8px; margin-bottom: 12px; }
+  .btn {
+    flex:1; padding: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px; letter-spacing: 2px;
+    border: 1px solid; cursor: pointer;
+    transition: all 0.2s; text-transform: uppercase;
+    background: transparent;
+  }
+  .btn-start { border-color: var(--green); color: var(--green); }
+  .btn-start:hover, .btn-start.active { background: var(--green); color: var(--bg); box-shadow: 0 0 20px rgba(0,255,136,0.4); }
+  .btn-stop { border-color: var(--red); color: var(--red); }
+  .btn-stop:hover { background: var(--red); color: #fff; }
+
+  /* Stats */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(4,1fr);
+    gap: 8px; margin-bottom: 12px;
+  }
+  .stat { border: 1px solid var(--border); padding: 10px 8px; text-align:center; }
+  .stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px; font-weight:700;
+    color: var(--cyan);
+  }
+  .stat-val.win { color: var(--green); }
+  .stat-val.loss { color: var(--red); }
+  .stat-label { font-size: 8px; color: var(--muted); letter-spacing: 1px; margin-top: 3px; }
+
+  /* Log */
+  .log {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    height: 160px; overflow-y: auto;
+    padding: 8px;
+    font-size: 10px; line-height: 1.8;
+  }
+  .log::-webkit-scrollbar { width: 4px; }
+  .log::-webkit-scrollbar-thumb { background: var(--dim); }
+  .log-win { color: var(--green); }
+  .log-loss { color: var(--red); }
+  .log-info { color: var(--muted); }
+  .log-ai { color: var(--cyan); }
+
+  /* Section title */
+  .sec { font-size: 9px; color: var(--muted); letter-spacing: 3px; margin-bottom: 8px; margin-top: 4px; }
+
+  /* RL Environment Panel */
+  .rl-panel {
+    border: 1px solid #1a2a3a;
+    background: #05080d;
+    margin-bottom: 12px; overflow: hidden;
+  }
+  .rl-header {
+    padding: 8px 12px;
+    background: #0a1520;
+    border-bottom: 1px solid #1a2a3a;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .rl-header span { font-size: 9px; letter-spacing: 2px; color: #3a5a7a; }
+  .rl-header strong { font-size: 10px; color: var(--cyan); }
+  .rl-stats {
+    display: grid; grid-template-columns: repeat(4,1fr);
+    border-bottom: 1px solid #1a2a3a;
+  }
+  .rl-stat {
+    padding: 10px 8px; text-align:center;
+    border-right: 1px solid #1a2a3a;
+  }
+  .rl-stat:last-child { border-right: none; }
+  .rl-stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px; font-weight:700; color: var(--cyan);
+  }
+  .rl-stat-val.pos { color: var(--green); }
+  .rl-stat-val.neg { color: var(--red); }
+  .rl-stat-label { font-size: 8px; color: #3a5a7a; letter-spacing: 1px; margin-top: 3px; }
+
+  /* Reward sparkline */
+  .reward-track {
+    padding: 8px 12px;
+    border-bottom: 1px solid #1a2a3a;
+  }
+  .reward-track-label { font-size: 8px; color: #3a5a7a; letter-spacing: 2px; margin-bottom: 6px; }
+  .reward-bars {
+    display: flex; gap: 2px; align-items: flex-end;
+    height: 32px;
+  }
+  .reward-bar {
+    flex: 1; min-width: 4px;
+    transition: height 0.3s;
+  }
+  .reward-bar.pos { background: var(--green2); }
+  .reward-bar.neg { background: var(--red); }
+
+  /* Engine accuracy scoreboard */
+  .engine-scores {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    padding: 10px 0;
+  }
+  .engine-score { text-align:center; padding: 6px; border-right: 1px solid #1a2a3a; }
+  .engine-score:last-child { border-right: none; }
+  .es-name { font-size: 8px; color: #3a5a7a; letter-spacing: 1px; margin-bottom: 4px; }
+  .es-acc {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px; font-weight:700; color: var(--cyan);
+  }
+  .es-acc.good { color: var(--green); }
+  .es-acc.bad { color: var(--red); }
+  .es-detail { font-size: 8px; color: #3a5a7a; margin-top: 2px; }
+
+  /* PPO Agent Panel */
+  .ppo-panel {
+    border: 1px solid #2a1a3a;
+    background: #08050d;
+    margin-bottom: 12px; overflow: hidden;
+  }
+  .ppo-header {
+    padding: 8px 12px;
+    background: #12082a;
+    border-bottom: 1px solid #2a1a3a;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .ppo-header span { font-size: 9px; letter-spacing: 2px; color: #5a3a7a; }
+  .ppo-header strong { font-size: 10px; color: #cc88ff; }
+
+  .ppo-stats {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    border-bottom: 1px solid #2a1a3a;
+  }
+  .ppo-stat {
+    padding: 10px 8px; text-align:center;
+    border-right: 1px solid #2a1a3a;
+  }
+  .ppo-stat:last-child { border-right:none; }
+  .ppo-stat-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px; font-weight:700; color: #cc88ff;
+  }
+  .ppo-stat-label { font-size: 8px; color: #5a3a7a; letter-spacing: 1px; margin-top: 3px; }
+
+  /* Policy heatmap */
+  .policy-map {
+    padding: 10px 12px;
+    border-bottom: 1px solid #2a1a3a;
+  }
+  .policy-map-label { font-size: 8px; color: #5a3a7a; letter-spacing: 2px; margin-bottom: 6px; }
+  .policy-digits {
+    display: flex; gap: 3px;
+  }
+  .policy-cell {
+    flex:1; text-align:center; padding: 4px 2px;
+    border: 1px solid #2a1a3a; position:relative;
+  }
+  .policy-cell-d { font-size: 9px; color: #5a3a7a; }
+  .policy-cell-v {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px; font-weight:700;
+    margin-top: 2px;
+  }
+  .policy-cell-bar {
+    height: 3px; margin-top: 3px;
+    background: #cc88ff; transition: width 0.4s;
+  }
+
+  /* Cluster workers */
+  .cluster-workers {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    padding: 8px 0;
+  }
+  .worker {
+    text-align:center; padding: 8px 6px;
+    border-right: 1px solid #2a1a3a;
+  }
+  .worker:last-child { border-right:none; }
+  .worker-name { font-size: 8px; color: #5a3a7a; letter-spacing: 1px; margin-bottom: 4px; }
+  .worker-action {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px; font-weight:700; color: #cc88ff;
+  }
+  .worker-reward { font-size: 8px; margin-top: 3px; }
+  .worker-reward.pos { color: var(--green); }
+  .worker-reward.neg { color: var(--red); }
+
+  /* Train button */
+  .btn-train { border-color: #cc88ff; color: #cc88ff; }
+  .btn-train:hover { background: #cc88ff; color: var(--bg); }
+  .btn-train.active { background: #cc88ff; color: var(--bg); box-shadow: 0 0 20px rgba(204,136,255,0.4); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DIGIT BOT</h1>
+  <div class="badge">V18 RL SYSTEM</div>
+  <div class="badge" id="connBadge">● OFFLINE</div>
+</header>
+
+<div class="main">
+
+  <!-- Config -->
+  <p class="sec">// CONFIG</p>
+  <div class="config-grid">
+    <div class="field">
+      <label>API TOKEN</label>
+      <input type="password" id="token" placeholder="pat_xxxx"/>
+    </div>
+    <div class="field">
+      <label>STAKE (USD)</label>
+      <input type="number" id="stake" value="0.35" min="0.35" step="0.01"/>
+    </div>
+    <div class="field">
+      <label>SYMBOL</label>
+      <select id="symbol">
+        <option value="1HZ100V">Volatility 100 (1s)</option>
+        <option value="1HZ75V">Volatility 75 (1s)</option>
+        <option value="1HZ50V">Volatility 50 (1s)</option>
+        <option value="1HZ25V">Volatility 25 (1s)</option>
+        <option value="1HZ10V">Volatility 10 (1s)</option>
+        <option value="R_100">Volatility 100</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>WINDOW SIZE</label>
+      <input type="number" id="windowSize" value="20" min="5" max="100"/>
+    </div>
+    <div class="field full">
+      <label>AI PROVIDER (Claude via Backend)</label>
+      <input type="text" id="backendUrl" value="https://deriv-bot-backend-3ue8.onrender.com" placeholder="https://your-backend.onrender.com"/>
+    </div>
+  </div>
+
+  <!-- Prediction Engines -->
+  <p class="sec">// PREDICTION ENGINES</p>
+  <div class="pred-panel">
+    <div class="pred-header">
+      <span>3-ENGINE CONSENSUS</span>
+      <strong id="engineStatus">WAITING FOR DATA</strong>
+    </div>
+    <div class="engines">
+      <div class="engine">
+        <div class="engine-name">FREQUENCY</div>
+        <div class="engine-digit loading" id="freqDigit">–</div>
+        <div class="engine-conf" id="freqConf">—</div>
+      </div>
+      <div class="engine">
+        <div class="engine-name">PATTERN MATCH</div>
+        <div class="engine-digit loading" id="patDigit">–</div>
+        <div class="engine-conf" id="patConf">—</div>
+      </div>
+      <div class="engine">
+        <div class="engine-name">CLAUDE AI</div>
+        <div class="engine-digit loading" id="aiDigit">–</div>
+        <div class="engine-conf" id="aiConf">—</div>
+      </div>
+    </div>
+    <div class="final-pred">
+      <div>
+        <div class="final-label">CONSENSUS DIGIT</div>
+        <div class="final-digit" id="finalDigit">–</div>
+      </div>
+      <div class="consensus" id="consensusDetail">awaiting window...</div>
+    </div>
+  </div>
+
+  <!-- RL Environment Panel -->
+  <p class="sec">// RL ENVIRONMENT (gym-like)</p>
+  <div class="rl-panel">
+    <div class="rl-header">
+      <span>TRADING ENV ∙ server/rl/env.js</span>
+      <strong id="rlStatus">IDLE</strong>
+    </div>
+    <div class="rl-stats">
+      <div class="rl-stat"><div class="rl-stat-val" id="rlBalance">100</div><div class="rl-stat-label">RL BALANCE</div></div>
+      <div class="rl-stat"><div class="rl-stat-val pos" id="rlReward">0</div><div class="rl-stat-label">LAST REWARD</div></div>
+      <div class="rl-stat"><div class="rl-stat-val" id="rlStep">0</div><div class="rl-stat-label">STEPS</div></div>
+      <div class="rl-stat"><div class="rl-stat-val" id="rlEp">0</div><div class="rl-stat-label">EPISODE</div></div>
+    </div>
+    <div class="reward-track">
+      <div class="reward-track-label">// REWARD HISTORY (last 40 steps)</div>
+      <div class="reward-bars" id="rewardBars"></div>
+    </div>
+    <div class="engine-scores">
+      <div class="engine-score">
+        <div class="es-name">FREQUENCY</div>
+        <div class="es-acc" id="freqAcc">–</div>
+        <div class="es-detail" id="freqAccD">0/0</div>
+      </div>
+      <div class="engine-score">
+        <div class="es-name">PATTERN</div>
+        <div class="es-acc" id="patAcc">–</div>
+        <div class="es-detail" id="patAccD">0/0</div>
+      </div>
+      <div class="engine-score">
+        <div class="es-name">CLAUDE AI</div>
+        <div class="es-acc" id="aiAcc">–</div>
+        <div class="es-detail" id="aiAccD">0/0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Digit History -->
+  <p class="sec">// LAST 30 DIGITS</p>
+  <div class="history-bar" id="historyBar"></div>
+
+  <!-- Frequency Chart -->
+  <p class="sec">// DIGIT FREQUENCY</p>
+  <div class="freq-chart" id="freqChart"></div>
+
+  <!-- PPO Agent + Cluster Panel -->
+  <p class="sec">// PPO AGENT ∙ CLUSTER ∙ TRAIN LOOP</p>
+  <div class="ppo-panel">
+    <div class="ppo-header">
+      <span>server/rl/ppoAgent.js + cluster.js + train.js</span>
+      <strong id="ppoStatus">IDLE</strong>
+    </div>
+    <div class="ppo-stats">
+      <div class="ppo-stat"><div class="ppo-stat-val" id="ppoPolicySize">0</div><div class="ppo-stat-label">POLICY KEYS</div></div>
+      <div class="ppo-stat"><div class="ppo-stat-val" id="ppoBatch">0</div><div class="ppo-stat-label">BATCH SIZE</div></div>
+      <div class="ppo-stat"><div class="ppo-stat-val" id="ppoUpdates">0</div><div class="ppo-stat-label">UPDATES</div></div>
+    </div>
+    <!-- Policy heatmap: which digit the agent prefers per state -->
+    <div class="policy-map">
+      <div class="policy-map-label">// AGENT POLICY (digit scores, live)</div>
+      <div class="policy-digits" id="policyDigits">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+    <!-- 3 cluster workers -->
+    <div class="cluster-workers">
+      <div class="worker">
+        <div class="worker-name">WORKER 0</div>
+        <div class="worker-action" id="w0act">–</div>
+        <div class="worker-reward" id="w0rew">—</div>
+      </div>
+      <div class="worker">
+        <div class="worker-name">WORKER 1</div>
+        <div class="worker-action" id="w1act">–</div>
+        <div class="worker-reward" id="w1rew">—</div>
+      </div>
+      <div class="worker">
+        <div class="worker-name">WORKER 2</div>
+        <div class="worker-action" id="w2act">–</div>
+        <div class="worker-reward" id="w2rew">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn btn-train" id="trainBtn" onclick="toggleTraining()">⚙ TRAIN RL</button>
+  </div>
+
+  <!-- Bot Controls -->
+  <p class="sec">// BOT CONTROLS</p>
+  <div class="controls">
+    <button class="btn btn-start" id="startBtn" onclick="startBot()">▶ START</button>
+    <button class="btn btn-stop" onclick="stopBot()">■ STOP</button>
+  </div>
+  <div class="controls" style="margin-top:-4px">
+    <button class="btn" id="tradeModeBtn" onclick="toggleTradeMode()"
+      style="border-color:#ffcc00;color:#ffcc00;font-size:9px;letter-spacing:1px">
+      ⚠ OBSERVE ONLY — click to enable LIVE TRADES
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat"><div class="stat-val" id="sBalance">–</div><div class="stat-label">BALANCE</div></div>
+    <div class="stat"><div class="stat-val win" id="sWins">0</div><div class="stat-label">WINS</div></div>
+    <div class="stat"><div class="stat-val loss" id="sLosses">0</div><div class="stat-label">LOSSES</div></div>
+    <div class="stat"><div class="stat-val" id="sWR">–</div><div class="stat-label">WIN RATE</div></div>
+  </div>
+
+  <!-- Log -->
+  <p class="sec">// ACTIVITY LOG</p>
+  <div class="log" id="log"></div>
+
+</div>
+
+<script>
+// ============================================================
+// DATASET CLASS (from image — server/rl/dataset.js)
+// ============================================================
+class Dataset {
+  constructor() { this.data = []; }
+  add(tick) { this.data.push(tick); }
+  getWindow(size = 50) { return this.data.slice(-size); }
+  buildStates(windowSize = 20) {
+    const states = [];
+    for (let i = windowSize; i < this.data.length; i++) {
+      const window = this.data.slice(i - windowSize, i);
+      const features = window.map(t => t.digit);
+      states.push({ state: features, next: this.data[i].digit });
+    }
+    return states;
+  }
+}
+
+// ============================================================
+// TRADING ENV CLASS (from image — server/rl/env.js)
+// ============================================================
+class TradingEnv {
+  constructor(data) {
+    this.data = data;
+    this.index = 0;
+    this.balance = 100;
+  }
+  reset() {
+    this.index = 0;
+    this.balance = 100;
+    return this._getState();
+  }
+  _getState() {
+    const slice = this.data.slice(this.index, this.index + 20);
+    return slice.map(x => x.digit);
+  }
+  step(action) {
+    const current = this.data[this.index];
+    const correct = action === current.digit;
+    const reward = correct ? 1 : -1;
+    this.balance += reward;
+    this.index++;
+    return {
+      nextState: this._getState(),
+      reward,
+      done: this.index >= this.data.length
+    };
+  }
+}
+
+// ============================================================
+// RL STATE TRACKING
+// ============================================================
+let env = null;
+let rewardHistory = [];
+let episode = 0;
+let rlStep = 0;
+
+// Per-engine accuracy tracking
+let engineStats = {
+  freq: { correct: 0, total: 0 },
+  pat:  { correct: 0, total: 0 },
+  ai:   { correct: 0, total: 0 }
+};
+let lastPredictions = { freq: null, pat: null, ai: null };
+
+function stepRL(action, actualDigit) {
+  if (!env || env.index >= env.data.length) {
+    // New episode
+    episode++;
+    env = new TradingEnv(dataset.data.slice());
+    env.reset();
+    document.getElementById('rlEp').textContent = episode;
+    document.getElementById('rlStatus').textContent = `EPISODE ${episode}`;
+  }
+  const result = env.step(action);
+  rlStep++;
+
+  rewardHistory.push(result.reward);
+  if (rewardHistory.length > 40) rewardHistory.shift();
+
+  // Update engine accuracy vs actual digit
+  ['freq','pat','ai'].forEach(k => {
+    const pred = lastPredictions[k];
+    if (pred !== null) {
+      engineStats[k].total++;
+      if (pred === actualDigit) engineStats[k].correct++;
+    }
+  });
+
+  // Update RL UI
+  document.getElementById('rlBalance').textContent = env.balance;
+  const rEl = document.getElementById('rlReward');
+  rEl.textContent = result.reward > 0 ? '+1' : '-1';
+  rEl.className = `rl-stat-val ${result.reward > 0 ? 'pos' : 'neg'}`;
+  document.getElementById('rlStep').textContent = rlStep;
+
+  renderRewardBars();
+  renderEngineAccuracy();
+
+  if (result.done) {
+    episode++;
+    env = new TradingEnv(dataset.data.slice());
+    env.reset();
+    document.getElementById('rlEp').textContent = episode;
+  }
+}
+
+function renderRewardBars() {
+  const container = document.getElementById('rewardBars');
+  const max = 1;
+  container.innerHTML = rewardHistory.map(r =>
+    `<div class="reward-bar ${r > 0 ? 'pos' : 'neg'}" style="height:${r > 0 ? '100%' : '40%'}"></div>`
+  ).join('');
+}
+
+function renderEngineAccuracy() {
+  ['freq','pat','ai'].forEach(k => {
+    const s = engineStats[k];
+    const acc = s.total > 0 ? (s.correct / s.total * 100).toFixed(0) : null;
+    const el = document.getElementById(`${k}Acc`);
+    const dl = document.getElementById(`${k}AccD`);
+    if (acc !== null) {
+      el.textContent = `${acc}%`;
+      el.className = `es-acc ${parseInt(acc) >= 15 ? 'good' : 'bad'}`;
+      dl.textContent = `${s.correct}/${s.total}`;
+    } else {
+      el.textContent = '–';
+      dl.textContent = '0/0';
+    }
+  });
+}
+
+
+// ============================================================
+// PPO AGENT (server/rl/ppoAgent.js)
+// ============================================================
+class PPOAgent {
+  constructor() {
+    this.policy = {};
+    this.value  = {};
+    this.updateCount = 0;
+  }
+  act(state) {
+    const key = state.join(',');
+    if (!this.policy[key]) return Math.floor(Math.random() * 10);
+    const scores = this.policy[key];
+    let best = 0, bestScore = -Infinity;
+    for (let d = 0; d < 10; d++) {
+      const s = scores[d] || 0;
+      if (s > bestScore) { bestScore = s; best = d; }
+    }
+    return best;
+  }
+  update(batch) {
+    for (const sample of batch) {
+      const key = sample.state.join(',');
+      if (!this.policy[key]) this.policy[key] = Array(10).fill(0);
+      this.policy[key][sample.action] =
+        (this.policy[key][sample.action] || 0) + sample.reward;
+    }
+    this.updateCount++;
+  }
+  getDigitScores(state) {
+    const key = state.join(',');
+    return this.policy[key] || Array(10).fill(0);
+  }
+}
+
+// ============================================================
+// REWARD ENGINE (server/rl/reward.js)
+// ============================================================
+function computeReward(action, actual) {
+  if (action === actual) return 1.0;
+  return -1.0;
+}
+
+// ============================================================
+// RL CLUSTER (server/rl/cluster.js) — 3 parallel workers
+// ============================================================
+class RLCluster {
+  constructor(workers = []) {
+    this.workers = workers;
+  }
+  distribute(states) {
+    const chunk = Math.ceil(states.length / this.workers.length);
+    this.workers.forEach((w, i) => {
+      const batch = states.slice(i * chunk, (i + 1) * chunk);
+      if (batch.length > 0) w.update(batch);
+    });
+  }
+}
+
+// ============================================================
+// TRAIN LOOP (server/rl/train.js)
+// ============================================================
+let ppoAgent = new PPOAgent();
+let clusterWorkers = [ppoAgent, new PPOAgent(), new PPOAgent()];
+let cluster = new RLCluster(clusterWorkers);
+let trainingActive = false;
+let trainingInterval = null;
+let ppoUpdatesTotal = 0;
+
+function trainRL(data) {
+  if (data.length < 25) return null;
+
+  // Exact logic from server/rl/train.js (image):
+  // while(true) loop, batch flushes at 64, returns agent
+  const envLocal = new TradingEnv(data.slice());
+  const agent = ppoAgent;
+  const localCluster = new RLCluster(clusterWorkers);
+
+  let state = envLocal.reset();
+  const batch = [];
+
+  while (true) {
+    const action = agent.act(state);
+    const { nextState, reward, done } = envLocal.step(action);
+    const actual = envLocal.data[Math.max(0, envLocal.index - 1)]?.digit ?? 0;
+
+    batch.push({ state, action, reward, nextState, actual });
+    state = nextState;
+
+    if (batch.length > 64) {
+      localCluster.distribute(batch.slice());
+      batch.length = 0;
+    }
+
+    if (done) break;
+  }
+  if (batch.length > 0) localCluster.distribute(batch);
+
+  ppoUpdatesTotal++;
+
+  document.getElementById('ppoPolicySize').textContent = Object.keys(agent.policy).length;
+  document.getElementById('ppoBatch').textContent = data.length;
+  document.getElementById('ppoUpdates').textContent = ppoUpdatesTotal;
+  document.getElementById('ppoStatus').textContent = `UPDATE #${ppoUpdatesTotal}`;
+
+  // Show worker last actions
+  const snap = data.slice(-3).map(t => ({ state: data.slice(-20).map(x=>x.digit), actual: t.digit }));
+  clusterWorkers.forEach((w, i) => {
+    const sample = snap[i] || snap[0];
+    if (!sample) return;
+    const wAct = w.act(sample.state);
+    const wRew = computeReward(wAct, sample.actual);
+    document.getElementById(`w${i}act`).textContent = wAct;
+    const rEl = document.getElementById(`w${i}rew`);
+    rEl.textContent = wRew > 0 ? '+1.0' : '-1.0';
+    rEl.className = `worker-reward ${wRew > 0 ? 'pos' : 'neg'}`;
+  });
+
+  renderPolicyMap();
+  return agent; // module.exports = trainRL
+}
+
+function renderPolicyMap() {
+  const state = dataset.data.slice(-20).map(t => t.digit);
+  if (state.length < 1) return;
+  const scores = ppoAgent.getDigitScores(state);
+  const max = Math.max(...scores.map(Math.abs), 1);
+  document.getElementById('policyDigits').innerHTML = scores.map((s, d) => {
+    const norm = Math.abs((s / max) * 100).toFixed(0);
+    const color = s > 0 ? '#00ff88' : s < 0 ? '#ff3355' : '#5a3a7a';
+    return `<div class="policy-cell">
+      <div class="policy-cell-d">${d}</div>
+      <div class="policy-cell-v" style="color:${color}">${s > 0 ? '+' : ''}${s.toFixed(1)}</div>
+      <div class="policy-cell-bar" style="width:${norm}%;background:${color}"></div>
+    </div>`;
+  }).join('');
+}
+
+function toggleTraining() {
+  if (trainingActive) {
+    trainingActive = false;
+    clearInterval(trainingInterval);
+    trainingInterval = null;
+    document.getElementById('trainBtn').classList.remove('active');
+    document.getElementById('ppoStatus').textContent = 'PAUSED';
+    log('[PPO] Training paused.', 'log-ai');
+  } else {
+    trainingActive = true;
+    document.getElementById('trainBtn').classList.add('active');
+    document.getElementById('ppoStatus').textContent = 'TRAINING...';
+    log('[PPO] Training started — 3-worker cluster running.', 'log-ai');
+    trainingInterval = setInterval(() => {
+      if (dataset.data.length >= 25) trainRL(dataset.data);
+    }, 3000);
+  }
+}
+
+function getPPOPrediction() {
+  const state = dataset.data.slice(-20).map(t => t.digit);
+  if (state.length < 5) return null;
+  return ppoAgent.act(state);
+}
+
+function frequencyPredict(digits, windowSize = 20) {
+  const window = digits.slice(-windowSize);
+  if (window.length < 5) return { digit: null, conf: 'need more data' };
+  // Count occurrences
+  const counts = Array(10).fill(0);
+  window.forEach(d => counts[d]++);
+  // Find LEAST frequent digit (anti-frequency — "due" digit)
+  let minCount = Infinity, minDigit = 0;
+  counts.forEach((c, i) => { if (c < minCount) { minCount = c; minDigit = i; } });
+  const total = window.length;
+  const pct = ((total - minCount) / total * 100).toFixed(0);
+  return { digit: minDigit, conf: `avoid:${minCount}x seen, ${pct}% others` };
+}
+
+// ============================================================
+// ENGINE 2: PATTERN MATCHING
+// ============================================================
+function patternPredict(dataset, windowSize = 20) {
+  const data = dataset.data;
+  if (data.length < windowSize * 2) return { digit: null, conf: 'need more data' };
+  const states = dataset.buildStates(windowSize);
+  const currentWindow = data.slice(-windowSize).map(t => t.digit);
+  // Find most similar past window using Hamming-like distance
+  let bestMatch = null, bestScore = -1;
+  states.forEach(s => {
+    let matches = 0;
+    s.state.forEach((d, i) => { if (d === currentWindow[i]) matches++; });
+    const score = matches / windowSize;
+    if (score > bestScore) { bestScore = score; bestMatch = s; }
+  });
+  if (!bestMatch) return { digit: null, conf: 'no match' };
+  const pct = (bestScore * 100).toFixed(0);
+  return { digit: bestMatch.next, conf: `${pct}% pattern match` };
+}
+
+// ============================================================
+// ENGINE 3: CLAUDE AI PREDICTION
+// ============================================================
+async function claudePredict(digits, windowSize = 20) {
+  const backendUrl = document.getElementById('backendUrl').value.trim();
+  const window = digits.slice(-windowSize);
+  if (window.length < windowSize) return { digit: null, conf: 'need more data' };
+  try {
+    const res = await fetch(`${backendUrl}/ai-predict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ digits: window })
+    });
+    const json = await res.json();
+    return { digit: json.digit, conf: json.reasoning || 'AI prediction' };
+  } catch(e) {
+    log(`[AI] Backend error: ${e.message}`, 'log-info');
+    return { digit: null, conf: 'backend offline' };
+  }
+}
+
+// ============================================================
+// CONSENSUS VOTE
+// ============================================================
+function consensusVote(freq, pat, ai, ppo = {digit: null}) {
+  const votes = {};
+  [freq, pat, ai, ppo].forEach(r => {
+    if (r && r.digit !== null) {
+      votes[r.digit] = (votes[r.digit] || 0) + 1;
+    }
+  });
+  let best = null, bestV = 0;
+  Object.entries(votes).forEach(([d, v]) => {
+    if (v > bestV) { bestV = v; best = parseInt(d); }
+  });
+  // If no consensus, fall back to frequency
+  if (best === null) best = freq.digit;
+  const detail = Object.entries(votes).map(([d,v]) => `${d}:${v}v`).join(' ');
+  return { digit: best, detail: detail || '—' };
+}
+
+// ============================================================
+// BOT STATE
+// ============================================================
+let ws = null, running = false;
+let dataset = new Dataset();
+let wins = 0, losses = 0, balance = null;
+let pendingTrade = null;
+let aiPredicting = false;
+let currentPrediction = null;
+let liveModel = null;
+let liveTrading = false; // must explicitly enable before real trades fire
+
+function toggleTradeMode() {
+  liveTrading = !liveTrading;
+  const btn = document.getElementById('tradeModeBtn');
+  if (liveTrading) {
+    btn.textContent = '🔴 LIVE TRADES ACTIVE — click to pause';
+    btn.style.borderColor = '#ff3355';
+    btn.style.color = '#ff3355';
+    log('⚡ LIVE TRADING ENABLED — real money at risk!', 'log-win');
+  } else {
+    btn.textContent = '⚠ OBSERVE ONLY — click to enable LIVE TRADES';
+    btn.style.borderColor = '#ffcc00';
+    btn.style.color = '#ffcc00';
+    log('👁 Observe mode — predictions only, no trades.', 'log-info');
+    // Clear any stuck state
+    executionBusy = false;
+    pendingTrade = null;
+  }
+}
+
+function log(msg, cls='log-info') {
+  const el = document.getElementById('log');
+  const row = document.createElement('div');
+  row.className = cls;
+  row.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(row);
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateStats() {
+  document.getElementById('sWins').textContent = wins;
+  document.getElementById('sLosses').textContent = losses;
+  const total = wins + losses;
+  document.getElementById('sWR').textContent = total ? `${(wins/total*100).toFixed(0)}%` : '–';
+  if (balance !== null) document.getElementById('sBalance').textContent = `$${parseFloat(balance).toFixed(2)}`;
+}
+
+function renderHistory() {
+  const digits = dataset.data.slice(-30).map(t => t.digit);
+  const bar = document.getElementById('historyBar');
+  bar.innerHTML = digits.map((d, i) =>
+    `<div class="digit-chip d${d}${i===digits.length-1?' new':''}">${d}</div>`
+  ).join('');
+}
+
+function renderFreq() {
+  const digits = dataset.data.map(t => t.digit);
+  const counts = Array(10).fill(0);
+  digits.forEach(d => counts[d]++);
+  const max = Math.max(...counts, 1);
+  document.getElementById('freqChart').innerHTML = counts.map((c, i) =>
+    `<div class="freq-row">
+      <div class="freq-label">${i}</div>
+      <div class="freq-bar-bg"><div class="freq-bar-fill" style="width:${(c/max*100).toFixed(1)}%"></div></div>
+      <div class="freq-count">${c}</div>
+    </div>`
+  ).join('');
+}
+
+async function runPredictions() {
+  if (aiPredicting) return;
+  const digits = dataset.data.map(t => t.digit);
+  const windowSize = parseInt(document.getElementById('windowSize').value) || 20;
+  if (digits.length < windowSize) {
+    document.getElementById('engineStatus').textContent = `COLLECTING... ${digits.length}/${windowSize}`;
+    return;
+  }
+  document.getElementById('engineStatus').textContent = 'PREDICTING...';
+
+  // Engine 1: Frequency
+  const freq = frequencyPredict(digits, windowSize);
+  document.getElementById('freqDigit').textContent = freq.digit !== null ? freq.digit : '–';
+  document.getElementById('freqDigit').className = 'engine-digit';
+  document.getElementById('freqConf').textContent = freq.conf;
+  lastPredictions.freq = freq.digit;
+
+  // Engine 2: Pattern
+  const pat = patternPredict(dataset, windowSize);
+  document.getElementById('patDigit').textContent = pat.digit !== null ? pat.digit : '–';
+  document.getElementById('patDigit').className = 'engine-digit';
+  document.getElementById('patConf').textContent = pat.conf;
+  lastPredictions.pat = pat.digit;
+
+  // Engine 3: Claude AI (async, don't block)
+  aiPredicting = true;
+  document.getElementById('aiDigit').textContent = '…';
+  document.getElementById('aiDigit').className = 'engine-digit loading';
+  document.getElementById('aiConf').textContent = 'querying...';
+
+  const ai = await claudePredict(digits, windowSize);
+  document.getElementById('aiDigit').textContent = ai.digit !== null ? ai.digit : '–';
+  document.getElementById('aiDigit').className = 'engine-digit';
+  document.getElementById('aiConf').textContent = ai.conf;
+  lastPredictions.ai = ai.digit;
+  aiPredicting = false;
+
+  // Consensus — now includes PPO agent as 4th voter
+  const ppo = { digit: getPPOPrediction() };
+  const consensus = consensusVote(freq, pat, ai, ppo);
+  // Only use consensus if liveModel hasn't taken over
+  if (!liveModel) currentPrediction = consensus.digit;
+  document.getElementById('finalDigit').textContent = consensus.digit !== null ? consensus.digit : '–';
+  document.getElementById('consensusDetail').textContent = liveModel ? `RL:${currentPrediction} ${consensus.detail}` : consensus.detail;
+  document.getElementById('engineStatus').textContent = liveModel
+    ? `RL MODEL ACTIVE: DIGIT ${currentPrediction}`
+    : `CONSENSUS: DIGIT ${consensus.digit}`;
+}
+
+// ============================================================
+// DERIV WS
+// ============================================================
+function startBot() {
+  const token = document.getElementById('token').value.trim();
+  if (!token) { alert('Enter your API token'); return; }
+  dataset = new Dataset();
+  wins = 0; losses = 0;
+  env = null; rewardHistory = []; episode = 0; rlStep = 0;
+  engineStats = { freq:{correct:0,total:0}, pat:{correct:0,total:0}, ai:{correct:0,total:0} };
+  lastPredictions = { freq:null, pat:null, ai:null };
+  ppoAgent = new PPOAgent();
+  clusterWorkers = [ppoAgent, new PPOAgent(), new PPOAgent()];
+  cluster = new RLCluster(clusterWorkers);
+  ppoUpdatesTotal = 0;
+  liveModel = null;
+  executionBusy = false;
+  pendingProposalId = null;
+  updateStats();
+  running = true;
+  document.getElementById('startBtn').classList.add('active');
+  log('Connecting to Deriv API...', 'log-info');
+  connectWS(token);
+}
+
+function stopBot() {
+  running = false;
+  document.getElementById('startBtn').classList.remove('active');
+  if (ws) { ws.close(); ws = null; }
+  log('Bot stopped.', 'log-info');
+  document.getElementById('connBadge').textContent = '● OFFLINE';
+}
+
+function connectWS(token) {
+  if (ws) ws.close();
+  ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+
+  ws.onopen = () => {
+    log('Connected. Authorizing...', 'log-info');
+    ws.send(JSON.stringify({ authorize: token }));
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    handleMessage(msg);
+  };
+
+  ws.onerror = () => log('WebSocket error', 'log-loss');
+  ws.onclose = () => {
+    document.getElementById('connBadge').textContent = '● OFFLINE';
+    if (running) {
+      log('Reconnecting in 3s...', 'log-info');
+      setTimeout(() => connectWS(token), 3000);
+    }
+  };
+}
+
+function handleMessage(msg) {
+  if (msg.msg_type === 'authorize') {
+    balance = msg.authorize.balance;
+    document.getElementById('connBadge').textContent = '● LIVE';
+    log(`Authorized. Balance: $${parseFloat(balance).toFixed(2)}`, 'log-info');
+    updateStats();
+    subscribeDigits();
+  }
+
+  if (msg.msg_type === 'ticks') {
+    const quote = msg.tick.quote.toString();
+    const digit = parseInt(quote.slice(-1));
+    const tick = { digit, time: Date.now(), quote: msg.tick.quote };
+    dataset.add(tick);
+    renderHistory();
+    renderFreq();
+
+    // ── LIVE HYBRID MODE ─────────────────────────────────────
+    if (dataset.data.length % 500 === 0) {
+      log(`🧠 Retraining RL model… (tick ${dataset.data.length})`, 'log-ai');
+      document.getElementById('ppoStatus').textContent = 'RETRAINING...';
+      liveModel = trainRL(dataset.data);
+      log(`[PPO] Retrain complete — update #${ppoUpdatesTotal}`, 'log-ai');
+      document.getElementById('connBadge').textContent = '● LIVE+RL';
+    }
+    // liveModel overrides consensus once trained
+    if (liveModel) {
+      const liveState = dataset.getWindow(20).map(t => t.digit);
+      currentPrediction = liveModel.act(liveState);
+    }
+    // ─────────────────────────────────────────────────────────
+
+    // Step RL env with last prediction vs actual
+    if (currentPrediction !== null && dataset.data.length > 1) {
+      if (!env) { env = new TradingEnv(dataset.data.slice()); env.reset(); }
+      stepRL(currentPrediction, digit);
+    }
+
+    // Run ML predictions (updates currentPrediction if no liveModel)
+    runPredictions();
+
+    // Place trade only when live trading is explicitly enabled
+    if (running && liveTrading && !pendingTrade && !executionBusy && currentPrediction !== null) {
+      placeTrade(currentPrediction);
+    } else if (running && !liveTrading && currentPrediction !== null) {
+      log(`[OBSERVE] Would trade DIGIT ${currentPrediction}`, 'log-info');
+    }
+  }
+
+  // Execution Bridge: proposal response → execute buy after 300ms
+  if (msg.msg_type === 'proposal') {
+    if (msg.error) {
+      log(`[EXEC] Proposal error: ${msg.error.message}`, 'log-loss');
+      executionBusy = false;
+      pendingTrade = null;
+    } else {
+      const proposalId = msg.proposal.id;
+      const askPrice = msg.proposal.ask_price;
+      log(`[EXEC] Proposal OK — id:${proposalId} ask:${askPrice}`, 'log-info');
+      executeBuy(proposalId);
+    }
+  }
+
+  if (msg.msg_type === 'buy') {
+    if (msg.error) {
+      log(`[EXEC] Buy error: ${msg.error.message}`, 'log-loss');
+      executionBusy = false;
+      pendingTrade = null;
+    } else {
+      // Resolve: {contractId, payout} — exactly as image
+      const contractId = msg.buy.contract_id;
+      const payout = msg.buy.payout;
+      pendingTrade = { ...pendingTrade, contractId, payout };
+      executionBusy = false;
+      log(`[EXEC] Contract opened — id:${contractId} payout:${payout}`, 'log-info');
+      // Subscribe to settlement
+      ws.send(JSON.stringify({
+        proposal_open_contract: 1,
+        contract_id: contractId,
+        subscribe: 1
+      }));
+    }
+  }
+
+  if (msg.msg_type === 'proposal_open_contract') {
+    const c = msg.proposal_open_contract;
+    if (c.is_settleable || c.is_expired || c.status === 'sold') {
+      const digit = pendingTrade?.digit ?? '?';
+      if (c.profit > 0) {
+        wins++;
+        balance = c.balance_after;
+        log(`✅ WIN  +$${parseFloat(c.profit).toFixed(2)} | Digit ${digit} | Bal: $${parseFloat(balance).toFixed(2)}`, 'log-win');
+      } else {
+        losses++;
+        balance = c.balance_after;
+        log(`❌ LOSS -$${Math.abs(parseFloat(c.profit)).toFixed(2)} | Digit ${digit} | Bal: $${parseFloat(balance).toFixed(2)}`, 'log-loss');
+      }
+      pendingTrade = null;
+      executionBusy = false;
+      updateStats();
+    }
+  }
+
+  if (msg.msg_type === 'balance') {
+    balance = msg.balance.balance;
+    updateStats();
+  }
+}
+
+function subscribeDigits() {
+  const symbol = document.getElementById('symbol').value;
+  ws.send(JSON.stringify({ ticks: symbol, subscribe: 1 }));
+  ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+  log(`Subscribed to ${symbol}`, 'log-info');
+}
+
+// ============================================================
+// EXECUTION BRIDGE (execution/derivExecutionService.js)
+// proposal → 300ms → buy flow (production module)
+// ============================================================
+let executionBusy = false;
+let pendingProposalId = null;
+
+function placeTrade(digit) {
+  if (!ws || !running || executionBusy) return;
+  const stake = parseFloat(document.getElementById('stake').value) || 0.35;
+  const symbol = document.getElementById('symbol').value;
+  const token = document.getElementById('token').value.trim();
+
+  executionBusy = true;
+
+  // Step 1: Send proposal (exactly as derivExecutionService.js)
+  ws.send(JSON.stringify({
+    proposal: 1,
+    amount: stake,
+    basis: 'stake',
+    contract_type: 'DIGITMATCH',
+    currency: 'USD',
+    duration: 5,
+    duration_unit: 't',
+    underlying_symbol: symbol,
+    barrier: String(digit)
+  }));
+
+  log(`[EXEC] Proposal sent — digit:${digit} stake:${stake}`, 'log-info');
+
+  // Step 2: After 300ms, buy the proposal (mirrors setTimeout 300ms in image)
+  // Actual buy triggered in handleMessage on 'proposal' response
+  pendingTrade = { digit, stake, symbol };
+}
+
+// Called from handleMessage when proposal arrives
+function executeBuy(proposalId) {
+  if (!proposalId || !pendingTrade) return;
+  const stake = pendingTrade.stake || parseFloat(document.getElementById('stake').value) || 0.35;
+
+  setTimeout(() => {
+    if (!ws || !running) { executionBusy = false; return; }
+    ws.send(JSON.stringify({
+      buy: proposalId,
+      price: stake
+    }));
+    log(`[EXEC] Buy sent — proposal:${proposalId}`, 'log-info');
+  }, 300); // exact 300ms from image
+}
+
+// Keep render alive
+setInterval(() => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ ping: 1 }));
+  }
+}, 25000);
+
+// Init freq chart
+renderFreq();
+</script>
+</body>
+</html>
