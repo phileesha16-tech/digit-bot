@@ -1992,6 +1992,7 @@
   // AI Predictor state
   var autoPredict = false;
   var autoBuy = false;
+  var manualTradeOnly = false; // Set true to disable all auto trading
   var recentWindow = []; // last 10 digits for momentum
   var predictedDigit = null;
   var windowSize = 10;
@@ -2672,7 +2673,7 @@
     renderTrendRow(scores);
 
     // Auto-buy if enabled and no active contract
-    if (autoBuy && !contract) {
+    if (autoBuy && !contract && !tradeLock) {
       placeContract();
     }
   }
@@ -3610,7 +3611,7 @@
   }
 
   function botPlaceTrade() {
-    if (!bot.running || contract || bot.cooldownTick) return;
+    if (!bot.running || contract || bot.cooldownTick || tradeLock) return;
     if (!botCheckLimits()) return;
     var reqLogin = document.getElementById('botRequireLogin').checked;
     if (reqLogin && (!activeAccount || activeAccount.isVirtual)) {
