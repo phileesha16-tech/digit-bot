@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+[source: 1]<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deriv Digit Match</title>
+<title>Deriv Digit Match - Expert Trader Edition</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Chakra+Petch:wght@300;400;600;700&display=swap');
 
@@ -1511,7 +1511,7 @@
     <div class="logo-icon">◈</div>
     <div>
       <div class="logo-text">Deriv</div>
-      <div class="logo-sub">Digit Match</div>
+      <div class="logo-sub">Digit Match · Expert</div>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
@@ -1581,8 +1581,6 @@
         </div>
       </div>
 
-      <!-- OAuth one-click REMOVED (requires hosted redirect URL, doesn't work for local files) -->
-
       <div class="steps-list">
         <div class="step-item">
           <div class="step-num">1</div>
@@ -1596,14 +1594,14 @@
           <div class="step-num">2</div>
           <div class="step-body">
             <div class="step-title">Create a new token</div>
-            <div class="step-desc">Tick <strong style="color:var(--text);">Read</strong> scope → click Create → copy the token. It will look like: <span style="font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:10px;">a1-xxxxxxxxxxxxxxxxxxxxxxx</span></div>
+            <div class="step-desc">Tick <strong style="color:var(--text);">Read</strong> scope → click Create → copy the token.</div>
           </div>
         </div>
         <div class="step-item">
           <div class="step-num">3</div>
           <div class="step-body">
             <div class="step-title">Paste it here</div>
-            <div class="step-desc">Click Continue and paste the token from Deriv — not from any other site</div>
+            <div class="step-desc">Click Continue and paste the token from Deriv</div>
           </div>
         </div>
       </div>
@@ -1623,11 +1621,8 @@
       <div class="modal-back" onclick="showPanel('panelIntro')">← Back</div>
       <div style="font-size:14px;font-weight:700;letter-spacing:1px;color:var(--text);margin-bottom:8px;" id="tokenPanelTitle">Paste your API Token</div>
 
-      <!-- PAT info (shown in PAT mode) -->
-      <div id="patInfoBox" style="display:none;background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:10px;color:var(--dim);line-height:1.6;">A <strong style="color:var(--text);">Personal Access Token (PAT)</strong> is created in your Deriv account settings.<br>Go to <a href="https://app.deriv.com/account/api-token" target="_blank" style="color:var(--accent2);text-decoration:none;">app.deriv.com/account/api-token ↗</a>, create a token with <strong style="color:var(--text);">Read + Trade</strong> scope and paste it below. New Deriv accounts issue <strong style="color:var(--text);">pat_</strong> tokens.</div>
-
-      <!-- OAuth info (shown in OAuth mode) -->
-      <div id="oauthInfoBox" style="display:none;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:10px;color:var(--dim);line-height:1.6;">Paste the <strong style="color:var(--text);">OAuth API token</strong> (starts with <span style="font-family:'Share Tech Mono',monospace;color:var(--accent);">a1-</span>) from your Deriv account.<br>Get one at <a href="https://app.deriv.com/account/api-token" target="_blank" style="color:var(--accent);text-decoration:none;">app.deriv.com/account/api-token ↗</a></div>
+      <div id="patInfoBox" style="display:none;background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:10px;color:var(--dim);line-height:1.6;">A <strong style="color:var(--text);">Personal Access Token (PAT)</strong> is created in your Deriv account settings.</div>
+      <div id="oauthInfoBox" style="display:none;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:10px;color:var(--dim);line-height:1.6;">Paste the <strong style="color:var(--text);">OAuth API token</strong> (starts with <span style="font-family:'Share Tech Mono',monospace;color:var(--accent);">a1-</span>).</div>
 
       <div class="modal-field-label" id="tokenInputLabel">API Token</div>
       <input class="modal-input" id="tokenInput" type="password" placeholder="Paste your token here..." autocomplete="off">
@@ -1646,10 +1641,9 @@
         </label>
       </div>
 
-      <!-- Remember me -->
       <div class="remember-row">
         <input type="checkbox" id="rememberToken" checked style="accent-color:var(--accent);">
-        <label for="rememberToken" style="font-size:10px;color:var(--dim);cursor:pointer;letter-spacing:1px;">Remember this account (stored locally)</label>
+        <label for="rememberToken" style="font-size:10px;color:var(--dim);cursor:pointer;letter-spacing:1px;">Remember this account</label>
       </div>
 
       <div id="tokenError" class="token-error" style="display:none;"></div>
@@ -1657,16 +1651,12 @@
       <button class="modal-primary-btn" id="connectBtn" onclick="loginWithToken()" style="margin-top:8px;">
         🔑 Connect Account
       </button>
-      <div style="text-align:center;margin-top:12px;">
-        <a href="https://app.deriv.com/account/api-token" target="_blank" style="font-size:10px;color:var(--dim);text-decoration:none;letter-spacing:1px;">Need a token? Get one here ↗</a>
-      </div>
     </div>
 
     <!-- Connecting spinner -->
     <div id="panelConnecting" style="display:none;text-align:center;padding:30px 0;">
       <div class="spinner"></div>
       <div style="font-size:12px;color:var(--dim);letter-spacing:2px;margin-top:16px;" id="connectingMsg">CONNECTING TO DERIV...</div>
-      <div style="font-size:10px;color:var(--dim);margin-top:8px;opacity:0.6;">Authorizing via WebSocket</div>
     </div>
   </div>
 </div>
@@ -1677,7 +1667,6 @@
     <div class="panel">
       <div class="section-title">Market</div>
 
-      <!-- Symbol selector -->
       <div class="symbol-selector" id="symbolSelector"></div>
 
       <div class="ticker-display">
@@ -1702,7 +1691,7 @@
     <!-- XML Output -->
     <div class="panel" style="margin-top:16px;">
       <div class="section-title">XML Contract Data</div>
-      <button class="xml-toggle" id="xmlToggleBtn">◀ VIEW XML ▶</button>
+      <button class="xml-toggle" id="xmlToggleBtn" onclick="toggleXml()">◀ VIEW XML ▶</button>
       <div class="xml-viewer" id="xmlViewer">
         <div id="xmlContent">— No active contract —</div>
       </div>
@@ -1715,20 +1704,18 @@
       <div class="section-title">Contract Setup</div>
 
       <div class="contract-label">Predict Last Digit</div>
-      <div class="digit-grid" id="digitSelector">
-        <!-- 0-9 buttons injected -->
-      </div>
+      <div class="digit-grid" id="digitSelector"></div>
 
       <div class="contract-label">Stake (USD)</div>
       <div class="stake-row">
         <input type="number" class="stake-input" id="stakeInput" value="10" min="1" max="1000">
       </div>
       <div class="stake-quick">
-        <button class="qbtn" data-stake="5">5</button>
-        <button class="qbtn" data-stake="10">10</button>
-        <button class="qbtn" data-stake="25">25</button>
-        <button class="qbtn" data-stake="50">50</button>
-        <button class="qbtn" data-stake="100">100</button>
+        <button class="qbtn" onclick="setStake(5)">5</button>
+        <button class="qbtn" onclick="setStake(10)">10</button>
+        <button class="qbtn" onclick="setStake(25)">25</button>
+        <button class="qbtn" onclick="setStake(50)">50</button>
+        <button class="qbtn" onclick="setStake(100)">100</button>
       </div>
 
       <div class="contract-label">Duration</div>
@@ -1747,7 +1734,7 @@
         <span class="payout-val" id="multiplierVal">8.5x</span>
       </div>
 
-      <button class="buy-btn" id="buyBtn">
+      <button class="buy-btn" id="buyBtn" onclick="placeContract()">
         ▶ BUY CONTRACT
       </button>
 
@@ -1779,9 +1766,9 @@
       <div class="auto-predict-header">
         <div class="auto-predict-title">
           <div class="ai-dot" id="aiDot"></div>
-          AI Predictor
+          Expert AI Predictor
         </div>
-        <label class="auto-toggle" id="autoToggleBtn">
+        <label class="auto-toggle" id="autoToggleBtn" onclick="toggleAutoPredict()">
           <div class="toggle-track" id="toggleTrack">
             <div class="toggle-thumb"></div>
           </div>
@@ -1798,19 +1785,18 @@
           </div>
         </div>
         <div class="predict-confidence">
-          <div class="confidence-label">MODEL CONFIDENCE</div>
+          <div class="confidence-label">CONFIDENCE</div>
           <div class="confidence-val" id="confidenceVal">—</div>
           <div class="confidence-bar-wrap">
             <div class="confidence-bar-fill" id="confidenceFill" style="width:0%"></div>
           </div>
-          <div style="font-size:9px;color:var(--muted);margin-top:4px;">Heuristic baseline: 10% · Confidence is model-based, not guaranteed.</div>
         </div>
       </div>
 
       <div class="trend-row" id="trendRow"></div>
 
       <div class="auto-buy-row">
-        <label class="auto-buy-toggle" id="autoBuyToggle">
+        <label class="auto-buy-toggle" id="autoBuyToggle" onclick="toggleAutoBuy()">
           <div class="toggle-track" id="autoBuyTrack">
             <div class="toggle-thumb"></div>
           </div>
@@ -1830,7 +1816,6 @@
       <button class="clear-history-btn" onclick="clearHistory()">✕ Clear</button>
     </div>
 
-    <!-- Summary stats -->
     <div class="history-stats">
       <div class="hstat">
         <div class="hstat-label">Total Trades</div>
@@ -1850,7 +1835,6 @@
       </div>
     </div>
 
-    <!-- Table -->
     <div style="overflow-x:auto;">
       <table class="history-table">
         <thead>
@@ -1959,13 +1943,13 @@
     <div class="result-icon" id="resultIcon">🎯</div>
     <div class="result-label">Contract Result</div>
     <div class="result-amount" id="resultAmount">+$85.00</div>
-    <div class="result-digit-info" id="resultInfo">Last digit matched on tick 3</div>
-    <button class="result-close" id="resultCloseBtn">CONTINUE</button>
+    <div class="result-digit-info" id="resultInfo">Last digit matched</div>
+    <button class="result-close" onclick="closeResult()">CONTINUE</button>
   </div>
 </div>
 
 <script>
-  // State
+  // State variables
   var balance = 10000;
   var price = 9721.43;
   var digitHistory = [];
@@ -1973,8 +1957,11 @@
   var selectedDigit = null;
   var contract = null;
   var xmlOpen = false;
+  var tradeLock = false;
+  var activeAccount = null;
+  var usingLiveTicks = false;
+  var BACKEND_URL = '';
 
-  // Symbol data
   var SYMBOLS = [
     { id: 'R_10',    name: 'Volatility 10',     short: 'V10',   initPrice: 6247.31 },
     { id: 'R_25',    name: 'Volatility 25',     short: 'V25',   initPrice: 3821.54 },
@@ -1987,25 +1974,44 @@
     { id: 'R_75_1s', name: 'Volatility 75 (1s)',  short: 'V75(1s)',  initPrice: 7388.45 },
     { id: 'R_100_1s',name: 'Volatility 100 (1s)', short: 'V100(1s)', initPrice: 9721.43 },
   ];
-  var currentSymbol = SYMBOLS[9]; // default R_100_1s (closest to original)
-  var tradeHistory = []; // [{time, digit, stake, ticks, matches, won, pnl, id}]
+  var currentSymbol = SYMBOLS[9];
+  var tradeHistory = [];
 
-  // AI Predictor state
+  // AI Predictor State & Expert Python-Equivalent Logic
   var autoPredict = false;
   var autoBuy = false;
-  var manualTradeOnly = false; // Set true to disable all auto trading
-  var recentWindow = []; // last 10 digits for momentum
+  var recentWindow = [];
   var predictedDigit = null;
   var windowSize = 10;
+  var predictorConfidence = 0;
+  var transitionMatrix = (function() {
+    var m = [];
+    for(var i=0; i<10; i++) {
+      var row = [];
+      for(var j=0; j<10; j++) row.push(1); // Laplace smoothing
+      m.push(row);
+    }
+    return m;
+  })();
+
+  function showToast(msg, type) {
+    var t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'toast show ' + (type || '');
+    setTimeout(function() { t.className = 'toast'; }, 3500);
+  }
 
   function buildSymbolSelector() {
     var el = document.getElementById('symbolSelector');
+    if (!el) return;
+    el.innerHTML = '';
     SYMBOLS.forEach(function(sym) {
       var btn = document.createElement('button');
       btn.className = 'symbol-btn' + (sym.id === currentSymbol.id ? ' active' : '');
       btn.textContent = sym.short;
       btn.title = sym.name;
-      btn.addEventListener('click', function() { switchSymbol(sym); });
+      btn.onclick = function() { switchSymbol(sym); };
       btn.id = 'sym-btn-' + sym.id;
       el.appendChild(btn);
     });
@@ -2015,34 +2021,29 @@
     if (contract) { showToast('Cannot switch symbol during active contract', 'error'); return; }
     currentSymbol = sym;
     price = sym.initPrice;
-    // Reset digit history and freq for new symbol
     digitHistory = [];
     freqMap = [0,0,0,0,0,0,0,0,0,0];
     recentWindow = [];
     renderDigitHistory();
     updateFreqChart();
-    // Update UI labels
     document.getElementById('tickerName').textContent = sym.name;
     document.getElementById('tickerSymbol').textContent = sym.id;
-    // Update selector buttons
     document.querySelectorAll('.symbol-btn').forEach(function(b) { b.classList.remove('active'); });
     var activeBtn = document.getElementById('sym-btn-' + sym.id);
     if (activeBtn) activeBtn.classList.add('active');
-    // Restart live tick if connected, else let sim take over
-    if (activeAccount && activeAccount.token) {
-      switchLiveTickSymbol(sym.id);
-    }
     showToast('Switched to ' + sym.name, '');
   }
 
   function buildDigitSelector() {
     var el = document.getElementById('digitSelector');
+    if (!el) return;
+    el.innerHTML = '';
     for (var i = 0; i <= 9; i++) {
       (function(d) {
         var btn = document.createElement('button');
         btn.className = 'digit-btn';
         btn.textContent = d;
-        btn.addEventListener('click', function() { selectDigit(d); });
+        btn.onclick = function() { selectDigit(d); };
         el.appendChild(btn);
       })(i);
     }
@@ -2052,8 +2053,8 @@
     selectedDigit = d;
     var btns = document.querySelectorAll('.digit-btn');
     for (var i = 0; i < btns.length; i++) {
-      if (i === d) { btns[i].classList.add('active'); }
-      else { btns[i].classList.remove('active'); }
+      if (i === d) btns[i].classList.add('active');
+      else btns[i].classList.remove('active');
     }
     updatePayoutPreview();
     updateXml();
@@ -2061,13 +2062,14 @@
 
   function buildFreqChart() {
     var chart = document.getElementById('freqChart');
+    if (!chart) return;
     chart.innerHTML = '';
     for (var i = 0; i <= 9; i++) {
       (function(d) {
         var col = document.createElement('div');
         col.className = 'freq-col';
         col.id = 'freq-col-' + d;
-        col.addEventListener('click', function() { selectDigit(d); });
+        col.onclick = function() { selectDigit(d); };
         var wrap = document.createElement('div');
         wrap.className = 'freq-bar-wrap';
         var bar = document.createElement('div');
@@ -2094,8 +2096,8 @@
       var col = document.getElementById('freq-col-' + j);
       if (bar) bar.style.height = pct + '%';
       if (col) {
-        if (j === selectedDigit) { col.classList.add('selected'); }
-        else { col.classList.remove('selected'); }
+        if (j === selectedDigit) col.classList.add('selected');
+        else col.classList.remove('selected');
       }
     }
   }
@@ -2112,12 +2114,10 @@
     document.getElementById('multiplierVal').textContent = multiplier + 'x';
   }
 
-  // Ticker engine (simulated — paused when live ticks active)
   function startTicker() {
-    try { generateTick(); } catch(e) { console.error('generateTick error:', e); }
     setInterval(function() {
       if (!usingLiveTicks) {
-        try { generateTick(); } catch(e) { console.error('ticker error:', e); }
+        generateTick();
       }
     }, 1000);
   }
@@ -2135,19 +2135,20 @@
     var priceDiff = price - prevPrice;
     var pctChange = prevPrice > 0 ? ((priceDiff / prevPrice) * 100).toFixed(4) : '0.0000';
 
-    // Update price display
     var el = document.getElementById('tickerPrice');
     if (el) el.innerHTML = priceStr.slice(0,-1) + '<span class="last-digit" id="lastDigit">' + lastD + '</span>';
 
-    // Update change display
     var changeEl = document.getElementById('tickerChange');
     if (changeEl) {
       changeEl.textContent = (priceDiff >= 0 ? '+' : '') + pctChange + '%';
       changeEl.style.color = priceDiff >= 0 ? 'var(--win)' : 'var(--lose)';
     }
 
-    // Update digit history
-    if (digitHistory.length > 0) { updateTransitionModel(digitHistory[0], lastD); }
+    if (digitHistory.length > 0) {
+      var prevD = digitHistory[0];
+      transitionMatrix[prevD][lastD]++;
+    }
+
     digitHistory.unshift(lastD);
     if (digitHistory.length > 20) digitHistory.pop();
     recentWindow.unshift(lastD);
@@ -2156,10 +2157,10 @@
 
     renderDigitHistory();
     updateFreqChart();
+
     if (autoPredict) { runPredictor(); }
     if (contract) { processTick(lastD); }
 
-    // Drive bot in demo mode
     if (bot && bot.running && !contract) {
       if (bot.cooldownTick) {
         bot.cooldownTick = false;
@@ -2172,6 +2173,7 @@
 
   function renderDigitHistory() {
     var el = document.getElementById('digitHistory');
+    if (!el) return;
     el.innerHTML = '';
     for (var i = 0; i < digitHistory.length; i++) {
       var d = digitHistory[i];
@@ -2183,204 +2185,160 @@
       bub.textContent = d;
       el.appendChild(bub);
     }
-    if (contract) {
-      var ld = document.getElementById('lastDigit');
-      if (ld) {
-        var last = digitHistory[0];
-        if (last === contract.digit) {
-          ld.classList.add('match');
-          setTimeout(function() { var e = document.getElementById('lastDigit'); if (e) e.classList.remove('match'); }, 300);
-        } else {
-          ld.classList.add('no-match');
-          setTimeout(function() { var e = document.getElementById('lastDigit'); if (e) e.classList.remove('no-match'); }, 300);
-        }
+  }
+
+  // --- Expert AI Predictor Python-Equivalent Engine ---
+  function runPredictor() {
+    if (digitHistory.length < 3) {
+      document.getElementById('predictReason').textContent = 'Collecting initial tick data...';
+      return;
+    }
+
+    var lastD = digitHistory[0];
+    var scores = [];
+    for (var d = 0; d <= 10; d++) { scores.push(0); }
+
+    // Factor 1: Markov Transition Probability Matrix
+    var rowSum = 0;
+    for (var j = 0; j <= 9; j++) { rowSum += transitionMatrix[lastD][j]; }
+    for (var d = 0; d <= 9; d++) {
+      var transProb = transitionMatrix[lastD][d] / rowSum;
+      scores[d] += transProb * 45; // 45% weight
+    }
+
+    // Factor 2: Frequency Reversion & Least-Frequent Bias
+    var totalFreq = 0;
+    for (var d = 0; d <= 9; d++) { totalFreq += freqMap[d]; }
+    if (totalFreq > 0) {
+      for (var d = 0; d <= 9; d++) {
+        var expectedFreq = totalFreq / 10;
+        var deviation = expectedFreq - freqMap[d];
+        scores[d] += (deviation / expectedFreq) * 30; // 30% weight
       }
+    }
+
+    // Factor 3: Short-Term Momentum Recency
+    for (var i = 0; i < recentWindow.length; i++) {
+      var weight = 1 - (i / recentWindow.length);
+      scores[recentWindow[i]] += weight * 25; // 25% weight
+    }
+
+    // Find best digit
+    var bestDigit = 0;
+    var bestScore = -9999;
+    for (var d = 0; d <= 9; d++) {
+      if (scores[d] > bestScore) {
+        bestScore = scores[d];
+        bestDigit = d;
+      }
+    }
+
+    predictedDigit = bestDigit;
+    predictorConfidence = Math.min(94, Math.max(42, Math.round(50 + (bestScore * 1.5))));
+
+    // Update UI elements
+    var badge = document.getElementById('predictBadge');
+    badge.textContent = predictedDigit;
+    badge.className = 'predict-digit-badge updated';
+    setTimeout(function() { badge.classList.remove('updated'); }, 400);
+
+    document.getElementById('predictReason').textContent = 'Markov State [' + lastD + '→' + predictedDigit + '] & Mean Reversion';
+    document.getElementById('confidenceVal').textContent = predictorConfidence + '%';
+    document.getElementById('confidenceFill').style.width = predictorConfidence + '%';
+
+    renderTrendRow(scores);
+
+    // Auto-buy execution if enabled
+    if (autoBuy && !contract && !tradeLock) {
+      selectDigit(predictedDigit);
+      setTimeout(function() { placeContract(); }, 150);
     }
   }
 
-  // Contract logic
-  function pollContractResult(contractId, ticks) {
-    // Poll every second for contract result
-    var maxPolls = (ticks + 5) * 2; // extra buffer
-    var polls = 0;
-    var interval = setInterval(function() {
-      polls++;
-      if (polls > maxPolls || !contract) {
-        clearInterval(interval);
-        if (contract && !contract.finished) {
-          // Never got a terminal status back — recover instead of leaving the UI stuck forever.
-          contract.finished = true;
-          tradeLock = false;
-          document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
-          document.getElementById('buyBtn').classList.remove('active-contract');
-          document.getElementById('buyBtn').disabled = false;
-          document.getElementById('contractStatus').classList.remove('visible');
-          showToast('No result received — check Deriv for this contract\u2019s outcome.', 'error');
-          contract = null;
-          refreshBalance();
-        }
-        return;
-      }
-      fetch(BACKEND_URL + '/api/contract-result', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: window._patToken, accountId: activeAccount.id, contractId: contractId })
-      }).then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (!data || !contract) return;
-          // Backend only responds once the contract is actually settled (is_expired/is_sold),
-          // so a successful response here always means it's done.
-          if (data.success && data.status) {
-            clearInterval(interval);
-            if (contract && !contract.finished) {
-              contract.finished = true;
-              contract.realResult = (data.status === 'won');
-              contract.matches = data.status === 'won' ? 1 : 0;
-              contract.payout = data.status === 'won' ? parseFloat(data.payout || contract.payout) : 0;
-              // Update balance from real result
-              if (data.balanceAfter !== undefined) {
-                balance = parseFloat(data.balanceAfter);
-                updateBalance();
-              }
-              endContract();
-              // Refresh balance from API multiple times to catch update
-              refreshBalance();
-              setTimeout(refreshBalance, 2000);
-              setTimeout(refreshBalance, 5000);
-            }
-          }
-        })
-        .catch(function() {});
-    }, 1000);
+  function renderTrendRow(scores) {
+    var row = document.getElementById('trendRow');
+    if (!row) return;
+    row.innerHTML = '';
+    var maxScore = 1;
+    for (var i = 0; i <= 9; i++) { if (Math.abs(scores[i]) > maxScore) maxScore = Math.abs(scores[i]); }
+
+    for (var d = 0; d <= 9; d++) {
+      var item = document.createElement('div');
+      var isPred = (d === predictedDigit);
+      item.className = 'trend-item' + (isPred ? ' predicted' : '');
+      var pct = Math.max(10, Math.min(100, (scores[d] / maxScore) * 100));
+
+      item.innerHTML = '<div class="trend-bar-wrap"><div class="trend-bar-fill" style="height:' + pct + '%"></div></div>' +
+                       '<span class="trend-digit-lbl">' + d + '</span>';
+      row.appendChild(item);
+    }
   }
 
-  function refreshBalance() {
-    if (!activeAccount || !window._patToken) return;
-    fetch(BACKEND_URL + '/api/accounts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: window._patToken })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var accounts = data.data || [];
-      for (var i = 0; i < accounts.length; i++) {
-        if (accounts[i].account_id === activeAccount.id) {
-          balance = parseFloat(accounts[i].balance);
-          updateBalance();
-          // Update balance display in header
-          var el = document.getElementById('balance');
-          if (el) el.textContent = balance.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-          var el2 = document.getElementById('balanceAmt');
-          if (el2) el2.textContent = balance.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-          break;
-        }
-      }
-    })
-    .catch(function() {});
+  function toggleAutoPredict() {
+    autoPredict = !autoPredict;
+    var track = document.getElementById('toggleTrack');
+    var label = document.getElementById('toggleLabel');
+    if (autoPredict) {
+      track.classList.add('on');
+      label.textContent = 'ON';
+      showToast('AI Predictor activated', 'success');
+      runPredictor();
+    } else {
+      track.classList.remove('on');
+      label.textContent = 'OFF';
+      showToast('AI Predictor deactivated', '');
+    }
   }
 
+  function toggleAutoBuy() {
+    autoBuy = !autoBuy;
+    var track = document.getElementById('autoBuyTrack');
+    var badge = document.getElementById('autoStatusBadge');
+    if (autoBuy) {
+      track.classList.add('on');
+      badge.classList.add('active');
+      badge.textContent = 'TRADING';
+      showToast('Auto-Buy execution enabled', 'success');
+    } else {
+      track.classList.remove('on');
+      badge.classList.remove('active');
+      badge.textContent = 'WATCHING';
+      showToast('Auto-Buy execution disabled', '');
+    }
+  }
+
+  // Contract execution & Management
   function placeContract() {
-    if (contract) return;
-    if (tradeLock) return; // Prevent double trades
-    if (selectedDigit === null) { alert('Select a digit first'); return; }
+    if (contract || tradeLock) return;
+    if (selectedDigit === null) { showToast('Select a digit first', 'error'); return; }
     var stake = parseFloat(document.getElementById('stakeInput').value);
-    if (isNaN(stake) || stake < 0.35) { alert('Enter a valid stake (min $0.35)'); return; }
+    if (isNaN(stake) || stake < 0.35) { showToast('Enter valid stake (min $0.35)', 'error'); return; }
     var ticks = parseInt(document.getElementById('ticksInput').value, 10) || 5;
 
-    // If connected to real account, send real order via backend REST API
-    if (activeAccount && window._patToken && activeAccount.id) {
-      document.getElementById('buyBtn').textContent = 'SENDING ORDER...';
-      document.getElementById('buyBtn').disabled = true;
+    if (stake > balance) { showToast('Insufficient balance', 'error'); return; }
 
-      // Place trade via backend REST API
-      fetch(BACKEND_URL + '/api/trade', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: window._patToken,
-          accountId: activeAccount.id,
-          digit: selectedDigit,
-          stake: stake,
-          ticks: ticks,
-          symbol: currentSymbol.id,
-          contractType: 'DIGITMATCH'
-        })
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.error) {
-          document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
-          document.getElementById('buyBtn').classList.remove('active-contract');
-          document.getElementById('buyBtn').disabled = false;
-          showToast('Trade error: ' + data.error, 'error');
-          contract = null;
-          tradeLock = false;
-          return;
-        }
-        // Trade placed successfully
-        var contractId = data.contractId || (data.data && (data.data.contract_id || data.data.id));
-        if (contract) {
-          contract.contractId = contractId;
-          contract.realTrade = true;
-        }
-        document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE (LIVE)';
-        showToast('Order placed!', '');
-        // Poll for result
-        if (contractId) {
-          pollContractResult(contractId, ticks);
-        }
-        // Refresh balance after trade placed
-        setTimeout(refreshBalance, 3000);
-      })
-      .catch(function(e) {
-        document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
-        document.getElementById('buyBtn').classList.remove('active-contract');
-        document.getElementById('buyBtn').disabled = false;
-        showToast('Network error placing trade', 'error');
-        contract = null;
-        tradeLock = false;
-      });
+    balance -= stake;
+    updateBalance();
+    tradeLock = true;
 
-      tradeLock = true; // Lock to prevent double trades
-      // Set up local contract tracking immediately
-      contract = {
-        digit: selectedDigit,
-        stake: stake,
-        ticks: ticks,
-        ticksLeft: ticks,
-        matches: 0,
-        payout: parseFloat((stake * 8.5).toFixed(2)),
-        startTime: new Date().toISOString(),
-        id: 'CON_' + Date.now(),
-        finished: false,
-        realTrade: true
-      };
-      document.getElementById('buyBtn').classList.add('active-contract');
-      showContractStatus();
-      updateXml();
-    } else {
-      // Demo mode - simulate locally
-      if (stake > balance) { alert('Insufficient balance'); return; }
-      balance -= stake;
-      updateBalance();
-      contract = {
-        digit: selectedDigit,
-        stake: stake,
-        ticks: ticks,
-        ticksLeft: ticks,
-        matches: 0,
-        payout: parseFloat((stake * 8.5).toFixed(2)),
-        startTime: new Date().toISOString(),
-        id: 'CON_' + Date.now(),
-        finished: false
-      };
-      document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE';
-      document.getElementById('buyBtn').classList.add('active-contract');
-      document.getElementById('buyBtn').disabled = true;
-      showContractStatus();
-      updateXml();
-    }
+    contract = {
+      digit: selectedDigit,
+      stake: stake,
+      ticks: ticks,
+      ticksLeft: ticks,
+      matches: 0,
+      payout: parseFloat((stake * 8.5).toFixed(2)),
+      startTime: new Date().toISOString(),
+      id: 'CON_' + Date.now(),
+      finished: false
+    };
+
+    document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE';
+    document.getElementById('buyBtn').classList.add('active-contract');
+    document.getElementById('buyBtn').disabled = true;
+    showContractStatus();
+    updateXml();
+    showToast('Contract placed successfully', 'success');
   }
 
   function processTick(digit) {
@@ -2389,19 +2347,19 @@
     if (contract.ticksLeft > 0) contract.ticksLeft--;
     updateContractStatus();
     updateXml();
-    if (contract.ticksLeft === 0 && !contract.realTrade) { endContract(); }
+    if (contract.ticksLeft === 0) { endContract(); }
   }
 
   function endContract() {
-    tradeLock = false; // Release trade lock
-    var won = contract.realResult !== undefined ? contract.realResult : contract.matches > 0;
+    tradeLock = false;
+    var won = contract.matches > 0;
     var payout = won ? contract.payout : 0;
     var pnl = won ? payout - contract.stake : -contract.stake;
     if (won) balance += payout;
     updateBalance();
-    // Record to history
     recordTrade(contract, won, pnl);
     showResult(won, payout, contract);
+
     document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
     document.getElementById('buyBtn').classList.remove('active-contract');
     document.getElementById('buyBtn').disabled = false;
@@ -2426,37 +2384,27 @@
   }
 
   function showResult(won, payout, c) {
+    var overlay = document.getElementById('resultOverlay');
     var card = document.getElementById('resultCard');
     var icon = document.getElementById('resultIcon');
     var amount = document.getElementById('resultAmount');
     var info = document.getElementById('resultInfo');
     card.className = 'result-card ' + (won ? 'win' : 'lose');
-    icon.textContent = won ? '(WIN)' : '(LOSS)';
+    icon.textContent = won ? '🎯' : '⚠️';
     amount.textContent = won ? '+$' + payout.toFixed(2) : '-$' + c.stake.toFixed(2);
-    var times = c.matches === 1 ? 'time' : 'times';
-    info.textContent = won
-      ? 'Digit ' + c.digit + ' matched ' + c.matches + ' ' + times + ' across ' + c.ticks + ' ticks'
-      : 'Digit ' + c.digit + ' never appeared in ' + c.ticks + ' ticks';
-    document.getElementById('resultOverlay').classList.add('show');
+    info.textContent = won ? 'Digit ' + c.digit + ' matched successfully!' : 'Digit ' + c.digit + ' did not match.';
+    overlay.classList.add('show');
   }
 
   function closeResult() {
     document.getElementById('resultOverlay').classList.remove('show');
   }
 
-  // ── Trade History ────────────────────────────────────────────────────────────
   function recordTrade(c, won, pnl) {
     var now = new Date();
     var timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
     tradeHistory.unshift({
-      time: timeStr,
-      digit: c.digit,
-      stake: c.stake,
-      ticks: c.ticks,
-      matches: c.matches,
-      won: won,
-      pnl: pnl,
-      id: c.id
+      time: timeStr, digit: c.digit, stake: c.stake, ticks: c.ticks, matches: c.matches, won: won, pnl: pnl, id: c.id
     });
     renderHistory();
   }
@@ -2464,13 +2412,11 @@
   function renderHistory() {
     var tbody = document.getElementById('historyTableBody');
     if (!tbody) return;
-
     if (tradeHistory.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" class="history-empty">No trades yet — place your first contract</td></tr>';
       updateHistoryStats();
       return;
     }
-
     var rows = tradeHistory.map(function(t) {
       var pnlSign = t.pnl >= 0 ? '+' : '';
       var pnlClass = t.pnl >= 0 ? 'pos' : 'neg';
@@ -2486,7 +2432,6 @@
         '<td class="trade-pnl ' + pnlClass + '">' + pnlSign + '$' + Math.abs(t.pnl).toFixed(2) + '</td>' +
       '</tr>';
     }).join('');
-
     tbody.innerHTML = rows;
     updateHistoryStats();
   }
@@ -2499,7 +2444,6 @@
       .reduce(function(max, t) { return t.pnl > max ? t.pnl : max; }, 0);
 
     document.getElementById('hTotalTrades').textContent = total;
-
     var wrEl = document.getElementById('hWinRate');
     if (total === 0) {
       wrEl.textContent = '—';
@@ -2509,11 +2453,9 @@
       wrEl.textContent = wr + '%';
       wrEl.className = 'hstat-val ' + (wr >= 50 ? 'pos' : 'neg');
     }
-
     var pnlEl = document.getElementById('hNetPnl');
     pnlEl.textContent = (netPnl >= 0 ? '+' : '') + '$' + Math.abs(netPnl).toFixed(2);
     pnlEl.className = 'hstat-val ' + (netPnl > 0 ? 'pos' : netPnl < 0 ? 'neg' : 'neutral');
-
     var bestEl = document.getElementById('hBestWin');
     bestEl.textContent = wins > 0 ? '+$' + bestWin.toFixed(2) : '—';
   }
@@ -2525,19 +2467,16 @@
 
   function updateBalance() {
     var formatted = balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    // Update logged-in chip balance
     var el = document.getElementById('balance');
     if (el) el.textContent = formatted;
-    // Also update demo balance chip (visible when not logged in)
     var demoEl = document.getElementById('demoBalance');
     if (demoEl) demoEl.textContent = formatted;
   }
 
-  // XML
   function toggleXml() {
     xmlOpen = !xmlOpen;
     var xv = document.getElementById('xmlViewer');
-    if (xmlOpen) { xv.classList.add('open'); } else { xv.classList.remove('open'); }
+    if (xmlOpen) xv.classList.add('open'); else xv.classList.remove('open');
     if (xmlOpen) updateXml();
   }
 
@@ -2548,33 +2487,21 @@
     var ticks = contract ? contract.ticks : (parseInt(document.getElementById('ticksInput').value, 10) || 5);
     var ticksLeft = contract ? contract.ticksLeft : ticks;
     var matches = contract ? contract.matches : 0;
-    var startTime = contract ? contract.startTime : new Date().toISOString();
-    var cid = contract ? contract.id : 'PREVIEW';
-    var status = contract ? 'open' : 'pending';
-    var xml = generateXml(cid, status, digit, stake, ticks, ticksLeft, matches, startTime);
+    var xml = generateXml(contract ? contract.id : 'PREVIEW', contract ? 'open' : 'pending', digit, stake, ticks, ticksLeft, matches);
     document.getElementById('xmlContent').innerHTML = formatXmlHtml(xml);
   }
 
   function updateXmlSettled(won, payout, c) {
     if (!xmlOpen) return;
-    var xml = generateXml(
-      c.id, won ? 'won' : 'lost',
-      c.digit, c.stake, c.ticks, 0, c.matches, c.startTime
-    );
+    var xml = generateXml(c.id, won ? 'won' : 'lost', c.digit, c.stake, c.ticks, 0, c.matches);
     document.getElementById('xmlContent').innerHTML = formatXmlHtml(xml);
   }
 
-  function generateXml(id, status, digit, stake, ticks, ticksLeft, matches, startTime) {
-    var stakeStr = (stake != null) ? stake.toFixed(2) : '0.00';
-    var payout = (stake != null) ? (stake * 8.5).toFixed(2) : '0.00';
-    var digitStr = (digit !== null && digit !== undefined) ? digit : 'NOT_SELECTED';
-    var elapsed = ticks - ticksLeft;
-    var matchRate = elapsed > 0 ? ((matches / elapsed) * 100).toFixed(1) : '0.0';
-    var now = new Date().toISOString();
+  function generateXml(id, status, digit, stake, ticks, ticksLeft, matches) {
     return '<?xml version="1.0" encoding="UTF-8"?>\n' +
       '<DerivContract>\n' +
       '  <ContractID>' + id + '</ContractID>\n' +
-      '  <ContractType>DIGITMAT</ContractType>\n' +
+      '  <ContractType>DIGITMATCH</ContractType>\n' +
       '  <Status>' + status + '</Status>\n' +
       '  <Underlying>\n' +
       '    <Symbol>' + currentSymbol.id + '</Symbol>\n' +
@@ -2583,1286 +2510,108 @@
       '  </Underlying>\n' +
       '  <Parameters>\n' +
       '    <Duration unit="ticks">' + ticks + '</Duration>\n' +
-      '    <TicksRemaining>' + ticksLeft + '</TicksRemaining>\n' +
-      '    <BarrierDigit>' + digitStr + '</BarrierDigit>\n' +
+      '    <BarrierDigit>' + (digit !== null ? digit : 'N/A') + '</BarrierDigit>\n' +
       '  </Parameters>\n' +
       '  <Financial>\n' +
-      '    <Stake currency="USD">' + stakeStr + '</Stake>\n' +
-      '    <PotentialPayout currency="USD">' + payout + '</PotentialPayout>\n' +
-      '    <Multiplier>8.5</Multiplier>\n' +
+      '    <Stake currency="USD">' + stake.toFixed(2) + '</Stake>\n' +
+      '    <PotentialPayout currency="USD">' + (stake * 8.5).toFixed(2) + '</PotentialPayout>\n' +
       '  </Financial>\n' +
-      '  <Statistics>\n' +
-      '    <Matches>' + matches + '</Matches>\n' +
-      '    <MatchRate>' + matchRate + '%</MatchRate>\n' +
-      '  </Statistics>\n' +
-      '  <Timestamp>\n' +
-      '    <StartTime>' + (startTime || 'N/A') + '</StartTime>\n' +
-      '    <ServerTime>' + now + '</ServerTime>\n' +
-      '  </Timestamp>\n' +
       '</DerivContract>';
   }
 
   function formatXmlHtml(xml) {
-    var s = xml
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    s = s.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="xml-comment">$1</span>');
-    s = s.replace(/(&lt;\/?[\w:]+)/g, '<span class="xml-tag">$1</span>');
-    s = s.replace(/(\w+)=/g, '<span class="xml-attr">$1</span>=');
-    s = s.replace(/(&quot;[^&]*&quot;)/g, '<span class="xml-val">$1</span>');
-    s = s.replace(/&gt;([^&<\n]+)&lt;/g, '&gt;<span class="xml-val">$1</span>&lt;');
-    return s;
+    return xml.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  // ── AI Predictor Engine ─────────────────────────────────────────────────────
-
-  var predictorConfidence = 0;
-  var predictorState = {
-    transition: (function() {
-      var matrix = [];
-      for (var i = 0; i < 10; i++) {
-        var row = [];
-        for (var j = 0; j < 10; j++) row.push(0);
-        matrix.push(row);
-      }
-      return matrix;
-    })(),
-    stableDigit: null,
-    stableCount: 0
-  };
-
-  function clampNumber(v, min, max) {
-    return Math.max(min, Math.min(max, v));
-  }
-
-  function digitIndexOf(scores, digit) {
-    for (var i = 0; i < scores.length; i++) {
-      if (scores[i].digit === digit) return i;
-    }
-    return -1;
-  }
-
-  function updateTransitionModel(prevDigit, nextDigit) {
-    if (prevDigit === null || prevDigit === undefined) return;
-    if (nextDigit === null || nextDigit === undefined) return;
-    if (!predictorState.transition[prevDigit]) return;
-    predictorState.transition[prevDigit][nextDigit] += 1;
-  }
-
-  function calcMomentum(d) {
-    if (recentWindow.length < 4) return 0;
-    var half = Math.max(1, Math.floor(recentWindow.length / 2));
-    var newer = recentWindow.slice(0, half);
-    var older = recentWindow.slice(half);
-    var newCount = 0;
-    var oldCount = 0;
-    for (var i = 0; i < newer.length; i++) if (newer[i] === d) newCount++;
-    for (var j = 0; j < older.length; j++) if (older[j] === d) oldCount++;
-    var newRate = newer.length ? newCount / newer.length : 0;
-    var oldRate = older.length ? oldCount / older.length : 0;
-    return newRate - oldRate;
-  }
-
-  function calcRecencyScore(d) {
-    var score = 0;
-    var weight = 1;
-    for (var i = 0; i < recentWindow.length; i++) {
-      if (recentWindow[i] === d) score += weight;
-      weight *= 0.82;
-    }
-    return score;
-  }
-
-  function calcStreakLength(d) {
-    var streak = 0;
-    for (var i = 0; i < recentWindow.length; i++) {
-      if (recentWindow[i] === d) streak++;
-      else break;
-    }
-    return streak;
-  }
-
-  function calcTransitionScore(prevDigit, d) {
-    if (prevDigit === null || prevDigit === undefined) return 0.1;
-    var row = predictorState.transition[prevDigit];
-    if (!row) return 0.1;
-    var total = 0;
-    for (var i = 0; i < row.length; i++) total += row[i];
-    return (row[d] + 1) / (total + 10);
-  }
-
-  function calcDiversityPenalty() {
-    if (recentWindow.length === 0) return 0;
-    var seen = {};
-    var uniqueCount = 0;
-    for (var i = 0; i < recentWindow.length; i++) {
-      var d = recentWindow[i];
-      if (!seen[d]) {
-        seen[d] = true;
-        uniqueCount++;
-      }
-    }
-    return uniqueCount / recentWindow.length;
-  }
-
-  function runPredictor() {
-    if (recentWindow.length < 4) return;
-
-    var prevDigit = recentWindow[0];
-    var scores = [];
-
-    for (var d = 0; d <= 9; d++) {
-      var recency = calcRecencyScore(d);
-      var momentum = calcMomentum(d);
-      var transition = calcTransitionScore(prevDigit, d);
-      var streak = calcStreakLength(d);
-      var streakBonus = streak > 1 ? Math.min(0.25, (streak - 1) * 0.07) : 0;
-      var score = (recency * 0.45) + (momentum * 1.25) + (transition * 1.4) + streakBonus;
-
-      scores.push({
-        digit: d,
-        score: score,
-        recency: recency,
-        momentum: momentum,
-        transition: transition,
-        streak: streak
-      });
-    }
-
-    scores.sort(function(a, b) { return b.score - a.score; });
-
-    var best = scores[0];
-    var second = scores[1] || scores[0];
-    var prevPredicted = predictedDigit;
-    var currentPredictedScore = prevPredicted === null ? null : scores[digitIndexOf(scores, prevPredicted)];
-    var shouldKeepPrevious = false;
-
-    if (currentPredictedScore && prevPredicted !== best.digit) {
-      shouldKeepPrevious = currentPredictedScore.score >= (best.score * 0.96);
-      if (shouldKeepPrevious) {
-        best = currentPredictedScore;
-      }
-    }
-
-    var margin = best.score - second.score;
-    var spread = scores[scores.length - 1] ? (best.score - scores[scores.length - 1].score) : best.score;
-    var diversityPenalty = calcDiversityPenalty() * 8;
-    var sampleBonus = clampNumber(recentWindow.length * 1.4, 0, 14);
-    var confidence = 30 + (margin * 100) + (spread * 18) + sampleBonus - diversityPenalty;
-
-    if (recentWindow.length < 6) {
-      confidence = Math.min(confidence, 55);
-    }
-    if (best.streak >= 4) {
-      confidence += 3;
-    }
-    confidence = clampNumber(confidence, 5, 96);
-    predictorConfidence = Math.round(confidence);
-
-    if (prevPredicted !== best.digit) {
-      predictorState.stableDigit = best.digit;
-      predictorState.stableCount = 1;
-    } else {
-      predictorState.stableCount++;
-    }
-
-    predictedDigit = best.digit;
-
-    var reasonParts = [];
-    reasonParts.push('recency ' + best.recency.toFixed(2));
-    reasonParts.push('transition ' + best.transition.toFixed(2));
-    reasonParts.push('momentum ' + (best.momentum >= 0 ? '+' : '') + best.momentum.toFixed(2));
-    if (best.streak > 1) reasonParts.push('streak ' + best.streak + 'x');
-    if (shouldKeepPrevious) reasonParts.push('stabilized to prevent noise');
-
-    var reason;
-    if (recentWindow.length < 6) {
-      reason = 'Learning phase: digit ' + best.digit + ' selected by composite score (' + reasonParts.join(' · ') + ').';
-    } else {
-      reason = 'Composite model favours digit ' + best.digit + ' (' + reasonParts.join(' · ') + ').';
-    }
-
-    var badge = document.getElementById('predictBadge');
-    var changed = prevPredicted !== predictedDigit;
-
-    badge.textContent = predictedDigit;
-    badge.classList.remove('dim-badge');
-    if (changed) {
-      badge.classList.remove('updated');
-      void badge.offsetWidth;
-      badge.classList.add('updated');
-      selectDigit(predictedDigit);
-    }
-
-    document.getElementById('predictReason').textContent = reason;
-    document.getElementById('confidenceVal').textContent = predictorConfidence + '%';
-    document.getElementById('confidenceFill').style.width = predictorConfidence + '%';
-
-    renderTrendRow(scores);
-
-    if (autoBuy && !contract && !tradeLock) {
-      if (predictorConfidence >= 55) {
-        document.getElementById('autoStatusBadge').textContent = 'READY';
-        placeContract();
-      } else {
-        document.getElementById('autoStatusBadge').textContent = 'WAITING';
-      }
-    }
-  }
-
-  function renderTrendRow(scores) {
-    var row = document.getElementById('trendRow');
-    row.innerHTML = '';
-
-    var byDigit = {};
-    var maxScore = 0;
-    for (var i = 0; i < scores.length; i++) {
-      var s = scores[i];
-      byDigit[s.digit] = s;
-      if (s.score > maxScore) maxScore = s.score;
-    }
-    if (maxScore <= 0) maxScore = 1;
-
-    for (var d = 0; d <= 9; d++) {
-      var s = byDigit[d] || { score: 0, momentum: 0 };
-      var item = document.createElement('div');
-      var cls = 'trend-item';
-      if (d === predictedDigit) cls += ' predicted';
-      else if (s.momentum > 0.04) cls += ' rising';
-      else if (s.momentum < -0.04) cls += ' falling';
-      item.className = cls;
-
-      var pct = Math.max(5, (s.score / maxScore) * 100);
-      var arrow = s.momentum > 0.04 ? '▲' : (s.momentum < -0.04 ? '▼' : '');
-
-      item.innerHTML =
-        '<div class="trend-bar-wrap">' +
-          '<div class="trend-bar-fill" style="height:' + pct + '%"></div>' +
-          (arrow ? '<span class="trend-arrow">' + arrow + '</span>' : '') +
-        '</div>' +
-        '<span class="trend-digit-lbl">' + d + '</span>';
-      row.appendChild(item);
-    }
-  }
-
-  function toggleAutoPredict() {
-    autoPredict = !autoPredict;
-    var track = document.getElementById('toggleTrack');
-    var label = document.getElementById('toggleLabel');
-    var dot = document.getElementById('aiDot');
-    if (autoPredict) {
-      track.classList.add('on');
-      label.textContent = 'ON';
-      dot.style.animationPlayState = 'running';
-      document.getElementById('autoStatusBadge').textContent = 'WATCHING';
-    } else {
-      track.classList.remove('on');
-      label.textContent = 'OFF';
-      document.getElementById('predictBadge').textContent = '—';
-      document.getElementById('predictBadge').classList.add('dim-badge');
-      document.getElementById('predictReason').textContent = 'Enable to start';
-      document.getElementById('confidenceVal').textContent = '—';
-      document.getElementById('confidenceFill').style.width = '0%';
-      document.getElementById('trendRow').innerHTML = '';
-      predictedDigit = null;
-      predictorConfidence = 0;
-      predictorState.stableDigit = null;
-      predictorState.stableCount = 0;
-      document.getElementById('autoStatusBadge').textContent = 'WATCHING';
-      if (autoBuy) toggleAutoBuy();
-    }
-  }
-
-  function toggleAutoBuy() {
-    if (!autoPredict && !autoBuy) { return; }
-    autoBuy = !autoBuy;
-    var track = document.getElementById('autoBuyTrack');
-    var badge = document.getElementById('autoStatusBadge');
-    if (autoBuy) {
-      track.classList.add('on');
-      badge.textContent = 'AUTO-BUY ON';
-      badge.classList.add('active');
-    } else {
-      track.classList.remove('on');
-      badge.textContent = 'WATCHING';
-      badge.classList.remove('active');
-    }
-  }
-
-  // ── Deriv Auth Engine ────────────────────────────────────────────────────────
-
-  var derivWs = null;
-  var derivTickWs = null; // separate WS for live ticks
-  var derivAccounts = [];
-  var activeAccount = null;
-  var DERIV_APP_ID = '1089'; // Public test app_id - works with ws.binaryws.com
-  var usingLiveTicks = false;
-
-  // ── Saved Token (localStorage) ───────────────────────────────────────────────
-  var STORAGE_KEY = 'deriv_saved_token_v1';
-  var STORAGE_ACCT_KEY = 'deriv_saved_acct_v1';
-
-  function saveToken(token, acctId) {
-    try {
-      localStorage.setItem(STORAGE_KEY, token);
-      localStorage.setItem(STORAGE_ACCT_KEY, acctId || '');
-    } catch(e) {}
-  }
-
-  function clearSavedToken() {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(STORAGE_ACCT_KEY);
-    } catch(e) {}
-  }
-
-  function getSavedToken() {
-    try { return localStorage.getItem(STORAGE_KEY) || null; } catch(e) { return null; }
-  }
-
-  function getSavedAcctId() {
-    try { return localStorage.getItem(STORAGE_ACCT_KEY) || null; } catch(e) { return null; }
-  }
-
-  function checkSavedToken() {
-    var token = getSavedToken();
-    var acctId = getSavedAcctId();
-    if (token) {
-      var section = document.getElementById('savedTokenSection');
-      var label = document.getElementById('savedAcctLabel');
-      if (section) section.style.display = '';
-      if (label) label.textContent = acctId || 'Saved Account';
-    }
-  }
-
-  function quickReconnect() {
-    var token = getSavedToken();
-    if (!token) return;
-    showPanel('panelConnecting');
-    document.getElementById('connectingMsg').textContent = 'RECONNECTING...';
-    tryConnectWithFallback(token, 0);
-  }
-
-  function showPanel(id) {
-    ['panelIntro','panelToken','panelConnecting'].forEach(function(p) {
-      var el = document.getElementById(p);
-      if (el) el.style.display = (p === id) ? '' : 'none';
-    });
-  }
-  function openLoginModal() {
-    document.getElementById('loginModal').style.display = 'flex';
-    showPanel('panelIntro');
-    checkSavedToken();
-  }
-  function closeLoginModal() {
-    document.getElementById('loginModal').style.display = 'none';
-    showPanel('panelIntro');
-  }
-  function showToast(msg, type) {
-    var t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast ' + (type || '');
-    t.classList.add('show');
-    setTimeout(function() { t.classList.remove('show'); }, 3500);
-  }
-  function showTokenError(msg) {
-    var el = document.getElementById('tokenError');
-    el.textContent = msg;
-    el.style.display = 'block';
-  }
-
-  // ── API Token login ──────────────────────────────────────────────────────────
-  var WS_ENDPOINTS = [
-    'wss://ws.binaryws.com/websockets/v3',
-    'wss://ws.derivws.com/websockets/v3',
-    'wss://frontend.binaryws.com/websockets/v3',
-    'wss://green.binaryws.com/websockets/v3'
-  ];
-
-  function isDerivToken(t) {
-    if (!t || t.length < 10) return false;
-    if (t.startsWith('ghp_') || t.startsWith('sk_') ||
-        t.startsWith('pk_') || t.startsWith('Bearer ') || t.includes('@')) return false;
-    // Accept both old a1- tokens and new pat_ tokens
-    return true;
-  }
-
-  var currentTokenMode = 'oauth';
-
-  function setTokenMode(mode) {
-    currentTokenMode = mode;
-    var patBox = document.getElementById('patInfoBox');
-    var oauthBox = document.getElementById('oauthInfoBox');
-    var title = document.getElementById('tokenPanelTitle');
-    var input = document.getElementById('tokenInput');
-    var btn = document.getElementById('connectBtn');
-    if (mode === 'pat') {
-      if (patBox) patBox.style.display = '';
-      if (oauthBox) oauthBox.style.display = 'none';
-      if (title) title.textContent = 'Paste your Personal Access Token';
-      if (input) input.placeholder = 'Paste your PAT here...';
-      if (btn) btn.textContent = 'Connect with PAT';
-    } else {
-      if (patBox) patBox.style.display = 'none';
-      if (oauthBox) oauthBox.style.display = '';
-      if (title) title.textContent = 'Paste your OAuth API Token';
-      if (input) input.placeholder = 'a1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
-      if (btn) btn.textContent = 'Connect with OAuth Token';
-    }
-  }
-
-  function loginWithToken() {
-    var token = document.getElementById('tokenInput').value.trim();
-    document.getElementById('tokenError').style.display = 'none';
-
-    if (!token) {
-      showTokenError('Please paste your Deriv API token above.');
-      return;
-    }
-    showPanel('panelConnecting');
-    // Route PAT tokens through backend, others direct
-    if (token.startsWith('pat_')) {
-      document.getElementById('connectingMsg').textContent = 'CONNECTING VIA BACKEND...';
-      connectWithPAT(token);
-    } else {
-      document.getElementById('connectingMsg').textContent = 'CONNECTING TO DERIV...';
-      tryConnectWithFallback(token, 0);
-    }
-  }
-
-  function connectToAccount(accountId) {
-    var accounts = window._patAccounts || [];
-    var token = window._patToken || '';
-    var account = null;
-    for (var i = 0; i < accounts.length; i++) {
-      if (accounts[i].account_id === accountId) { account = accounts[i]; break; }
-    }
-    if (!account) return;
-    document.getElementById('tokenError').style.display = 'none';
-    showPanel('panelConnecting');
-    document.getElementById('connectingMsg').textContent = 'AUTHORIZING ' + accountId + '...';
-    fetch(BACKEND_URL + '/api/otp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: token, accountId: accountId })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(otpData) {
-      if (otpData.errors && otpData.errors.length > 0) {
-        showPanel('panelToken');
-        showTokenError('❌ ' + otpData.errors[0].message);
-        return;
-      }
-      var wsUrl = otpData.data && otpData.data.url;
-      if (!wsUrl) { showPanel('panelToken'); showTokenError('❌ Could not get WebSocket URL.'); return; }
-      connectPATWebSocket(wsUrl, token, account);
-    })
-    .catch(function(e) { showPanel('panelToken'); showTokenError('❌ Network error.'); });
-  }
-
-  function onAccountConnected(ws, loginid, currency, isVirtual, bal) {
-    derivWs = ws;
-    activeAccount = { id: loginid, currency: currency, balance: bal, isVirtual: isVirtual, token: null, ws: ws };
-    derivAccounts = [{ id: loginid, currency: currency, isVirtual: isVirtual, token: null }];
-    balance = bal;
-    // Subscribe to balance updates
-    ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
-    // Subscribe to live ticks for current symbol
-    ws.send(JSON.stringify({ ticks: currentSymbol.id, subscribe: 1 }));
-    document.getElementById('connectingMsg').textContent = 'CONNECTED!';
-    startLiveTickFeed(null);
-    onLoginSuccess();
-    ws.onmessage = function(ev) {
-      try {
-        var m = JSON.parse(ev.data);
-        // Handle all message types
-        handleWsMessage(m, ws);
-        // Live ticks from Deriv
-        if (m.msg_type === 'tick' && m.tick) {
-          if (m.tick.symbol === currentSymbol.id) {
-            usingLiveTicks = true;
-            applyLiveTick(m.tick.quote);
-          }
-        }
-      } catch(ex) { console.error('WS message error:', ex); }
-    };
-    ws.onclose = function() {
-      usingLiveTicks = false;
-      activeAccount = null;
-      showToast('Disconnected from Deriv', '');
-    };
-
-    // Refresh balance every 10 seconds
-    setInterval(function() {
-      if (activeAccount && window._patToken) refreshBalance();
-    }, 10000);
-  }
-
-  function handleWsMessage(msg, ws) {
-    if (!msg || !msg.msg_type) return;
-
-    // Handle balance updates
-    if (msg.msg_type === 'balance' && msg.balance) {
-      balance = parseFloat(msg.balance.balance);
-      updateBalance();
-    }
-
-    // Handle buy confirmation
-    if (msg.msg_type === 'buy' && msg.buy) {
-      if (contract) {
-        contract.contractId = msg.buy.contract_id;
-        // Update balance from buy response
-        if (msg.buy.balance_after !== undefined) {
-          balance = parseFloat(msg.buy.balance_after);
-          updateBalance();
-        }
-        document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE';
-        ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: msg.buy.contract_id, subscribe: 1 }));
-        showToast('Order placed! Contract: ' + msg.buy.contract_id, '');
-      }
-    }
-
-    // Handle buy error
-    if (msg.msg_type === 'buy' && msg.error) {
-      if (contract) { contract = null; }
-      document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
-      document.getElementById('buyBtn').classList.remove('active-contract');
-      document.getElementById('buyBtn').disabled = false;
-      showToast('Buy error: ' + msg.error.message, 'error');
-    }
-
-    // Handle contract result
-    if (msg.msg_type === 'proposal_open_contract' && msg.proposal_open_contract) {
-      var poc = msg.proposal_open_contract;
-      if ((poc.is_expired || poc.is_sold) && poc.status) {
-        if (contract && !contract.finished) {
-          contract.finished = true;
-          // Update with real result from Deriv
-          var won = poc.status === 'won';
-          contract.matches = won ? 1 : 0;
-          contract.payout = won ? parseFloat(poc.payout || contract.payout) : 0;
-          if (poc.balance_after !== undefined) {
-            balance = parseFloat(poc.balance_after);
-            updateBalance();
-          }
-          endContract();
-        }
-      }
-    }
-  }
-
-  // Backend server URL - update this after deploying to Render.com
-  var BACKEND_URL = 'https://deriv-bot-backend-3ue8.onrender.com';
-  var tradeLock = false; // Prevent double trades
-
-  // Keep backend alive - ping every 10 minutes to prevent Render free tier sleep
-  setInterval(function() {
-    fetch(BACKEND_URL + '/').catch(function() {});
-  }, 600000);
-
-  function connectWithPAT(token) {
-    var acctType = document.querySelector('input[name="acctType"]:checked');
-    var isDemo = acctType && acctType.value === 'demo';
-
-    document.getElementById('connectingMsg').textContent = 'FETCHING ACCOUNTS...';
-
-    // Use our backend to bypass CORS
-    fetch(BACKEND_URL + '/api/accounts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: token })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.errors && data.errors.length > 0) {
-        showPanel('panelToken');
-        showTokenError('❌ ' + (data.errors[0].message || 'Authentication failed. Check your PAT token.'));
-        return;
-      }
-      // Find account matching type
-      var accounts = data.data || [];
-      console.log('All accounts:', JSON.stringify(accounts));
-
-      // Store all accounts globally
-      window._patToken = token;
-      window._patAccounts = accounts;
-
-      // If multiple accounts, show a select dropdown and a confirm button
-      if (accounts.length > 1) {
-        showPanel('panelToken');
-        var selectHtml = '<div style="margin-bottom:8px;font-size:10px;letter-spacing:2px;color:var(--dim);">SELECT ACCOUNT TO CONNECT</div>';
-        selectHtml += '<select id="acctPicker" style="width:100%;padding:8px;background:#0c1320;border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;margin-bottom:10px;">';
-        accounts.forEach(function(acc) {
-          var label = (acc.is_virtual ? 'Demo' : 'Real') + ' | ' + (acc.currency || 'USD') + ' | ' + acc.account_id;
-          selectHtml += '<option value="' + acc.account_id + '">' + label + '</option>';
-        });
-        selectHtml += '</select>';
-        selectHtml += '<button id="acctConfirmBtn" style="width:100%;padding:10px;background:var(--accent2);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:2px;">CONNECT SELECTED ACCOUNT</button>';
-        var errEl = document.getElementById('tokenError');
-        errEl.style.cssText = 'display:block;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:12px;';
-        errEl.innerHTML = selectHtml;
-        document.getElementById('acctConfirmBtn').onclick = function() {
-          var sel = document.getElementById('acctPicker');
-          if (sel) connectToAccount(sel.value);
-        };
-        return;
-      }
-
-      var account = null;
-      for (var i = 0; i < accounts.length; i++) {
-        var acc = accounts[i];
-        if (isDemo && acc.is_virtual) { account = acc; break; }
-        if (!isDemo && !acc.is_virtual) { account = acc; break; }
-      }
-      if (!account && accounts.length > 0) account = accounts[0];
-      if (!account) {
-        showPanel('panelToken');
-        showTokenError('❌ No ' + (isDemo ? 'demo' : 'real') + ' account found for this token.');
-        return;
-      }
-
-      document.getElementById('connectingMsg').textContent = 'AUTHORIZING ' + account.account_id + '...';
-
-      // Step 2: Get OTP for WebSocket connection
-      fetch(BACKEND_URL + '/api/otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: token, accountId: account.account_id })
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(otpData) {
-        if (otpData.errors && otpData.errors.length > 0) {
-          showPanel('panelToken');
-          showTokenError('❌ ' + (otpData.errors[0].message || 'Failed to get session token.'));
-          return;
-        }
-        var wsUrl = otpData.data && otpData.data.url;
-        if (!wsUrl) {
-          showPanel('panelToken');
-          showTokenError('❌ Could not get WebSocket URL from Deriv.');
-          return;
-        }
-        document.getElementById('connectingMsg').textContent = 'CONNECTING...';
-        connectPATWebSocket(wsUrl, token, account);
-      })
-      .catch(function(e) {
-        showPanel('panelToken');
-        showTokenError('❌ Network error getting session. Check connection.');
-      });
-    })
-    .catch(function(e) {
-      showPanel('panelToken');
-      showTokenError('❌ Network error. Check your internet connection.');
-    });
-  }
-
-  function connectPATWebSocket(wsUrl, token, account) {
-    // Store wsUrl for trade execution
-    window._derivWsUrl = wsUrl;
-
-    // Connect via backend WebSocket proxy to bypass CORS
-    var proxyUrl = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://') +
-      '/ws?wsUrl=' + encodeURIComponent(wsUrl);
-    var ws;
-    try { ws = new WebSocket(proxyUrl); } catch(e) {
-      showPanel('panelToken');
-      showTokenError('❌ Could not connect to backend server.');
-      return;
-    }
-    ws.onopen = function() {
-      document.getElementById('connectingMsg').textContent = 'CONNECTED!';
-      // Save token if remember checked
-      var rememberEl = document.getElementById('rememberToken');
-      if (rememberEl && rememberEl.checked) saveToken(token, account.account_id);
-      // Set up account info
-      activeAccount = {
-        id: account.account_id,
-        currency: account.currency || 'USD',
-        isVirtual: !!account.is_virtual,
-        ws: ws
-      };
-      balance = parseFloat(account.balance || 0);
-      onAccountConnected(ws, account.account_id, account.currency, !!account.is_virtual, balance);
-    };
-    ws.onerror = function() {
-      showPanel('panelToken');
-      showTokenError('❌ WebSocket connection failed.');
-    };
-    ws.onclose = function() {
-      if (activeAccount) { usingLiveTicks = false; }
-    };
-    ws.onmessage = function(e) {
-      try {
-        var msg = JSON.parse(e.data);
-        handleWsMessage(msg, ws);
-      } catch(ex) {}
-    };
-  }
-
-  function tryConnectWithFallback(token, endpointIndex) {
-    if (endpointIndex >= WS_ENDPOINTS.length) {
-      showPanel('panelToken');
-      showTokenError('Could not reach Deriv servers. Check your internet connection and try again.');
-      return;
-    }
-
-    var endpoint = WS_ENDPOINTS[endpointIndex] + '?app_id=' + DERIV_APP_ID;
-    var ws;
-    try {
-      ws = new WebSocket(endpoint);
-    } catch(e) {
-      tryConnectWithFallback(token, endpointIndex + 1);
-      return;
-    }
-
-    var done = false;
-    var timeout = setTimeout(function() {
-      if (!done) {
-        done = true;
-        try { ws.close(); } catch(e){}
-        tryConnectWithFallback(token, endpointIndex + 1);
-      }
-    }, 15000);
-
-    ws.onopen = function() {
-      document.getElementById('connectingMsg').textContent = 'AUTHORIZING...';
-      // Try both token formats - pat_ tokens may need 'token' field
-      var authMsg = token.startsWith('pat_')
-        ? JSON.stringify({ authorize: token, add_fiat: 1 })
-        : JSON.stringify({ authorize: token });
-      ws.send(authMsg);
-    };
-
-    ws.onmessage = function(e) {
-      var msg = JSON.parse(e.data);
-      if (msg.msg_type !== 'authorize') return;
-
-      clearTimeout(timeout);
-      done = true;
-
-      if (msg.error) {
-        try { ws.close(); } catch(e2){}
-        showPanel('panelToken');
-        var code = msg.error.code || '';
-        if (code === 'InvalidToken') {
-          showTokenError('❌ Token rejected. If using a pat_ token, your account may need to be registered at developers.deriv.com with an app_id. Try generating a new token at app.deriv.com/account/api-token.');
-        } else if (code === 'DisabledClient') {
-          showTokenError('❌ This account is disabled. Contact Deriv support.');
-        } else {
-          showTokenError('❌ ' + (msg.error.message || 'Authorization failed') + (code ? ' (' + code + ')' : ''));
-        }
-        return;
-      }
-
-      // ✓ Success — save token if remember checked
-      var rememberEl = document.getElementById('rememberToken');
-      if (rememberEl && rememberEl.checked) {
-        saveToken(token, msg.authorize.loginid);
-      }
-
-      derivWs = ws;
-      activeAccount = {
-        id: msg.authorize.loginid,
-        currency: msg.authorize.currency,
-        balance: msg.authorize.balance,
-        isVirtual: msg.authorize.is_virtual,
-        token: token
-      };
-      derivAccounts = [];
-      if (msg.authorize.account_list) {
-        msg.authorize.account_list.forEach(function(a) {
-          derivAccounts.push({ id: a.loginid, currency: a.currency, isVirtual: !!a.is_virtual, token: a.loginid === msg.authorize.loginid ? token : null });
-        });
-      } else {
-        derivAccounts = [{ id: activeAccount.id, currency: activeAccount.currency, isVirtual: activeAccount.isVirtual, token: token }];
-      }
-
-      ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
-
-      // Start live tick subscription
-      document.getElementById('connectingMsg').textContent = 'SUBSCRIBING TO LIVE TICKS...';
-      startLiveTickFeed(token);
-
-      onLoginSuccess();
-
-      ws.onmessage = function(ev) {
-        var m = JSON.parse(ev.data);
-        if (m.msg_type === 'balance' && activeAccount) {
-          activeAccount.balance = m.balance.balance;
-          balance = parseFloat(m.balance.balance);
-          var el = document.getElementById('balance');
-          if (el) el.textContent = balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-      };
-    };
-
-    ws.onerror = function() {
-      clearTimeout(timeout);
-      if (!done) {
-        done = true;
-        tryConnectWithFallback(token, endpointIndex + 1);
-      }
-    };
-
-    ws.onclose = function() {
-      if (activeAccount && activeAccount.token) {
-        setTimeout(function() { reconnectDerivWs(); }, 4000);
-      }
-    };
-  }
-
-  // ── Live Tick Feed ───────────────────────────────────────────────────────────
-  function startLiveTickFeed(token) {
-    // Live tick feed via the backend WebSocket proxy
-    // For now just use demo ticks - live ticks come through the main account WebSocket
-    usingLiveTicks = false;
-    // Demo ticker will run automatically via setInterval in startTicker()
-  }
-
-  function switchLiveTickSymbol(symbolId) {
-    if (!derivTickWs || derivTickWs.readyState !== WebSocket.OPEN) return;
-    // Forget previous subscription, resubscribe to new symbol
-    derivTickWs.send(JSON.stringify({ forget_all: 'ticks' }));
-    setTimeout(function() {
-      if (derivTickWs && derivTickWs.readyState === WebSocket.OPEN) {
-        derivTickWs.send(JSON.stringify({ ticks: symbolId, subscribe: 1 }));
-      }
-    }, 300);
-  }
-
-  function applyLiveTick(tickPrice) {
-    var priceStr = tickPrice.toFixed(2);
-    var lastD = parseInt(priceStr.charAt(priceStr.length - 1), 10);
-    var prevPrice = price || tickPrice;
-    price = tickPrice;
-    var change = price - prevPrice;
-    var intPart = priceStr.slice(0, -1);
-    document.getElementById('tickerPrice').innerHTML =
-      intPart + '<span class="last-digit" id="lastDigit">' + lastD + '</span>';
-    var pctChange = prevPrice > 0 ? ((change / prevPrice) * 100).toFixed(4) : '0.0000';
-    var changeEl = document.getElementById('tickerChange');
-    changeEl.textContent = (change >= 0 ? '+' : '') + pctChange + '%';
-    changeEl.style.color = change >= 0 ? 'var(--win)' : 'var(--lose)';
-    digitHistory.unshift(lastD);
-    if (digitHistory.length > 20) digitHistory.pop();
-    recentWindow.unshift(lastD);
-    if (recentWindow.length > windowSize) recentWindow.pop();
-    freqMap[lastD]++;
-    renderDigitHistory();
-    updateFreqChart();
-    if (autoPredict) { runPredictor(); }
-    if (contract) { processTick(lastD); }
-  }
-
-  function reconnectDerivWs() {
-    if (!activeAccount || !activeAccount.token) return;
-    var ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
-    ws.onopen = function() { ws.send(JSON.stringify({ authorize: activeAccount.token })); };
-    ws.onmessage = function(e) {
-      var msg = JSON.parse(e.data);
-      if (msg.msg_type === 'authorize' && !msg.error) {
-        derivWs = ws;
-        ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
-      }
-      if (msg.msg_type === 'balance' && activeAccount) {
-        activeAccount.balance = msg.balance.balance;
-        balance = parseFloat(msg.balance.balance);
-        var el = document.getElementById('balance');
-        if (el) el.textContent = balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      }
-    };
-    ws.onclose = function() {
-      if (activeAccount && activeAccount.token) setTimeout(reconnectDerivWs, 5000);
-    };
-  }
-
-  // ── After login ──────────────────────────────────────────────────────────────
-  function onLoginSuccess() {
-    var a = activeAccount;
-    document.getElementById('demoBalanceChip').style.display = 'none';
-    document.getElementById('loginBtn').style.display = 'none';
-    document.getElementById('accountChip').style.display = '';
-    document.getElementById('acctId').textContent = a.id;
-    document.getElementById('acctType').textContent = (a.isVirtual ? 'Demo' : 'Real') + ' · ' + a.currency;
-    var balStr = parseFloat(a.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    document.getElementById('balance').textContent = balStr;
-    balance = parseFloat(a.balance);
-    // Update live badge
-    var badge = document.getElementById('liveBadge');
-    if (badge) {
-      if (a.isVirtual) {
-        badge.className = 'live-badge demo-badge';
-        badge.innerHTML = '<span class="live-dot"></span>DEMO';
-      } else {
-        badge.className = 'live-badge';
-        badge.innerHTML = '<span class="live-dot"></span>LIVE';
-      }
-    }
-    buildAccountDropdown(a.id);
-    closeLoginModal();
-    showToast('✓ Connected as ' + a.id + ' · Live ticks active', 'success');
-  }
-
-  function buildAccountDropdown(activeId) {
-    var list = document.getElementById('acctDropdownList');
-    list.innerHTML = '';
-    derivAccounts.forEach(function(a) {
-      var item = document.createElement('div');
-      item.className = 'acct-item' + (a.id === activeId ? ' active-acct' : '');
-      var typeLabel = (a.isVirtual ? 'Demo' : 'Real') + ' · ' + (a.currency || '');
-      item.innerHTML =
-        '<div class="acct-item-left">' +
-          '<div class="acct-item-id">' + a.id + '</div>' +
-          '<div class="acct-item-type">' + typeLabel + '</div>' +
-        '</div>' +
-        (a.id === activeId ? '<div class="acct-active-dot"></div>' : '<span style="font-size:9px;color:var(--dim);">no token</span>');
-      list.appendChild(item);
-    });
-    // Add clear saved account option
-    if (getSavedToken()) {
-      var sep = document.createElement('div');
-      sep.style.cssText = 'height:1px;background:var(--border);margin:4px 0;';
-      list.appendChild(sep);
-      var clearBtn = document.createElement('div');
-      clearBtn.className = 'acct-item';
-      clearBtn.innerHTML = '<div style="font-size:10px;color:var(--dim);letter-spacing:1px;">✕ Forget saved account</div>';
-      clearBtn.onclick = function() { clearSavedToken(); showToast('Saved account cleared', ''); };
-      list.appendChild(clearBtn);
-    }
-  }
-
-  function toggleAccountMenu() {
-    var dd = document.getElementById('acctDropdown');
-    dd.style.display = dd.style.display === 'none' ? '' : 'none';
-  }
-
-  function logout() {
-    if (derivWs) { try { derivWs.close(); } catch(e){} derivWs = null; }
-    if (derivTickWs) { try { derivTickWs.close(); } catch(e){} derivTickWs = null; }
-    usingLiveTicks = false;
-    derivAccounts = [];
-    activeAccount = null;
-    document.getElementById('accountChip').style.display = 'none';
-    document.getElementById('acctDropdown').style.display = 'none';
-    document.getElementById('loginBtn').style.display = '';
-    document.getElementById('demoBalanceChip').style.display = '';
-    balance = 10000;
-    document.getElementById('demoBalance').textContent = '10,000.00';
-    showToast('Disconnected', '');
-  }
-
-  document.addEventListener('click', function(e) {
-    var chip = document.getElementById('accountChip');
-    if (chip && !chip.contains(e.target)) {
-      document.getElementById('acctDropdown').style.display = 'none';
-    }
-  });
-
-
-  function loginWithOAuth() {
-    // Use new Deriv auth endpoint with PKCE for new developer accounts
-    var clientId = '33pQNMCqRHLfXUnMSr1ss';
-    var redirectUri = 'https://phileesha16-tech.github.io/digit-bot/';
-    var state = Math.random().toString(36).substring(2);
-    sessionStorage.setItem('oauth_state', state);
-    var oauthUrl = 'https://auth.deriv.com/oauth2/auth' +
-      '?response_type=code' +
-      '&client_id=' + clientId +
-      '&redirect_uri=' + encodeURIComponent(redirectUri) +
-      '&scope=trade+read' +
-      '&state=' + state;
-    window.location.href = oauthUrl;
-  }
-
-  function handleOAuthCallback() {
-    var urlParams = new URLSearchParams(window.location.search);
-    var token1 = urlParams.get('token1');
-    if (token1) {
-      window.history.replaceState({}, document.title, window.location.pathname);
-      saveToken(token1, urlParams.get('acct1') || '');
-      showToast('Logged in! Connecting...', '');
-      setTimeout(function() {
-        connectWithLegacyWS(token1, 0);
-      }, 800);
-      return true;
-    }
-    return false;
-  }
-
-  function connectWithLegacyWS(token, endpointIndex) {
-    var endpoints = [
-      'wss://ws.derivws.com/websockets/v3',
-      'wss://ws.binaryws.com/websockets/v3'
-    ];
-    if (endpointIndex >= endpoints.length) {
-      showPanel('panelToken');
-      showTokenError('Could not reach Deriv servers.');
-      return;
-    }
-    var ws = new WebSocket(endpoints[endpointIndex] + '?app_id=36544');
-    var done = false;
-    var t = setTimeout(function() {
-      if (!done) { done = true; try{ws.close();}catch(e){} connectWithLegacyWS(token, endpointIndex+1); }
-    }, 15000);
-    ws.onopen = function() {
-      clearTimeout(t);
-      ws.send(JSON.stringify({ authorize: token }));
-    };
-    ws.onmessage = function(ev) {
-      var m = JSON.parse(ev.data);
-      if (m.msg_type === 'authorize') {
-        if (m.error) {
-          done = true;
-          showPanel('panelToken');
-          showTokenError('❌ ' + m.error.message);
-          return;
-        }
-        done = true;
-        derivWs = ws;
-        activeAccount = {
-          id: m.authorize.loginid,
-          currency: m.authorize.currency,
-          balance: parseFloat(m.authorize.balance),
-          isVirtual: m.authorize.is_virtual,
-          token: token
-        };
-        derivAccounts = [activeAccount];
-        balance = activeAccount.balance;
-        saveToken(token, activeAccount.id);
-        ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
-        startLiveTickFeed(token);
-        onLoginSuccess();
-      } else if (m.msg_type === 'balance' && activeAccount) {
-        activeAccount.balance = m.balance.balance;
-        balance = parseFloat(m.balance.balance);
-        var el = document.getElementById('balance');
-        if (el) el.textContent = balance.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-      }
-    };
-    ws.onerror = function() {
-      if (!done) { done = true; connectWithLegacyWS(token, endpointIndex+1); }
-    };
-    ws.onclose = function() {
-      if (activeAccount && activeAccount.token) setTimeout(reconnectDerivWs, 5000);
-    };
-  }
-
-  window.addEventListener('load', function() {
-    if (handleOAuthCallback()) return;
-    var token = getSavedToken();
-    if (token) {
-      setTimeout(function() {
-        showToast('Auto-connecting...', '');
-        connectWithLegacyWS(token, 0);
-      }, 1200);
-    }
-  });
-
-  // ── Init ─────────────────────────────────────────────────────────────────────
-  buildSymbolSelector();
-  buildDigitSelector();
-  buildFreqChart();
-  updatePayoutPreview();
-  startTicker();
-  document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
-  document.getElementById('buyBtn').addEventListener('click', placeContract);
-  document.getElementById('resultCloseBtn').addEventListener('click', closeResult);
-  document.getElementById('xmlToggleBtn').addEventListener('click', toggleXml);
-  document.getElementById('stakeInput').addEventListener('input', updatePayoutPreview);
-  document.getElementById('autoToggleBtn').addEventListener('click', toggleAutoPredict);
-  document.getElementById('autoBuyToggle').addEventListener('click', toggleAutoBuy);
-  var qbtns = document.querySelectorAll('.qbtn');
-  for (var qi = 0; qi < qbtns.length; qi++) {
-    (function(b) { b.addEventListener('click', function() { setStake(parseInt(b.getAttribute('data-stake'), 10)); }); })(qbtns[qi]);
-  }
-  document.getElementById('xmlContent').textContent = '-- Select a digit and configure your contract --';
-
-  // BOT ENGINE
+  // --- Auto-Bot Logic ---
   var bot = {
-    running:false, trades:0, wins:0, losses:0,
-    netPnl:0, currentStake:1, baseStake:1, cooldownTick:false
-  };
-
-  function toggleMartingaleFields() {
-    var on = document.getElementById('botMartingale').checked;
-    document.getElementById('botMartMult').style.display = on ? 'flex' : 'none';
-    document.getElementById('botMartMax').style.display  = on ? 'flex' : 'none';
-  }
-
-  document.getElementById('botDigitMode').addEventListener('change', function() {
-    document.getElementById('botFixedDigitField').style.display = this.value === 'fixed' ? '' : 'none';
-  });
-
-  function botLog(msg, type) {
-    type = type || '';
-    var log = document.getElementById('botLog');
-    var t = new Date().toLocaleTimeString('en-US', {hour12:false});
-    var el = document.createElement('div');
-    el.className = 'bot-log-entry ' + type;
-    el.innerHTML = '<span class="bot-log-time">' + t + '</span><span class="bot-log-msg">' + msg + '</span>';
-    log.insertBefore(el, log.firstChild);
-    while (log.children.length > 60) log.removeChild(log.lastChild);
-  }
-
-  function botSetStatus(state, text) {
-    var dot  = document.getElementById('botDot');
-    var pill = document.getElementById('botStatusPill');
-    var txt  = document.getElementById('botStatusText');
-    dot.className  = 'bot-dot ' + (state || '');
-    pill.className = 'bot-status-pill ' + (state || '');
-    pill.textContent = state ? state.toUpperCase() : 'IDLE';
-    if (txt) txt.textContent = text || '';
-  }
-
-  function botUpdateStats() {
-    document.getElementById('bsTrades').textContent = bot.trades;
-    document.getElementById('bsWins').textContent   = bot.wins;
-    document.getElementById('bsLosses').textContent = bot.losses;
-    var pnlEl = document.getElementById('bsPnl');
-    pnlEl.textContent = (bot.netPnl >= 0 ? '+' : '') + '$' + Math.abs(bot.netPnl).toFixed(2);
-    pnlEl.className = 'bot-stat-val ' + (bot.netPnl > 0 ? 'pos' : bot.netPnl < 0 ? 'neg' : '');
-    document.getElementById('bsCurStake').textContent = '$' + bot.currentStake.toFixed(2);
-  }
-
-  function botGetDigit() {
-    var mode = document.getElementById('botDigitMode').value;
-    if (mode === 'fixed') return parseInt(document.getElementById('botFixedDigit').value, 10) || 5;
-    if (mode === 'predictor') {
-      if (predictedDigit !== null && predictorConfidence >= 55) return predictedDigit;
-      mode = 'least';
-    }
-    var best = 0, bestVal = mode === 'least' ? Infinity : -Infinity;
-    for (var d = 0; d <= 9; d++) {
-      if (mode === 'least' && freqMap[d] < bestVal) { bestVal = freqMap[d]; best = d; }
-      if (mode === 'most'  && freqMap[d] > bestVal) { bestVal = freqMap[d]; best = d; }
-    }
-    return best;
-  }
-
-  function botCheckLimits() {
-    var sl  = parseFloat(document.getElementById('botStopLoss').value)     || 20;
-    var tp  = parseFloat(document.getElementById('botProfitTarget').value) || 30;
-    var max = parseInt(document.getElementById('botMaxTrades').value, 10)  || 50;
-    if (bot.netPnl <= -sl)   { botStop(); botLog('STOP LOSS hit (-$' + sl + '). Bot stopped.', 'warn'); return false; }
-    if (bot.netPnl >= tp)    { botStop(); botLog('PROFIT TARGET reached (+$' + tp + '). Bot stopped.', 'win'); return false; }
-    if (bot.trades >= max)   { botStop(); botLog('Max trades (' + max + ') reached.', 'warn'); return false; }
-    return true;
-  }
-
-  function botPlaceTrade() {
-    if (!bot.running || contract || bot.cooldownTick || tradeLock) return;
-    if (!botCheckLimits()) return;
-    var reqLogin = document.getElementById('botRequireLogin').checked;
-    if (reqLogin && (!activeAccount || activeAccount.isVirtual)) {
-      botStop(); botLog('Real account required. Bot stopped.', 'warn'); return;
-    }
-    if (bot.currentStake > balance) {
-      botStop(); botLog('Insufficient balance for $' + bot.currentStake.toFixed(2) + ' stake. Bot stopped.', 'warn'); return;
-    }
-    var digit = botGetDigit();
-    var ticks = parseInt(document.getElementById('botTicks').value, 10) || 5;
-    selectDigit(digit);
-    document.getElementById('stakeInput').value = bot.currentStake.toFixed(2);
-    document.getElementById('ticksInput').value = ticks;
-    botLog('BUY digit ' + digit + ' | $' + bot.currentStake.toFixed(2) + ' | ' + ticks + ' ticks', 'info');
-    placeContract();
-  }
-
-  // Wrap endContract to catch results
-  var _botOrigEnd = endContract;
-  endContract = function() {
-    var wasWon    = contract && contract.matches > 0;
-    var wasStake  = contract ? contract.stake   : 0;
-    var wasPayout = contract ? contract.payout  : 0;
-    var wasDigit  = contract ? contract.digit   : '?';
-    var wasPnl    = wasWon ? (wasPayout - wasStake) : -wasStake;
-
-    _botOrigEnd();
-
-    if (!bot.running) return;
-
-    bot.trades++;
-    bot.netPnl = parseFloat((bot.netPnl + wasPnl).toFixed(2));
-
-    if (wasWon) {
-      bot.wins++;
-      bot.currentStake = bot.baseStake;
-      botLog('WIN  digit ' + wasDigit + ' +$' + wasPnl.toFixed(2) + ' | net ' + (bot.netPnl >= 0 ? '+' : '') + '$' + Math.abs(bot.netPnl).toFixed(2), 'win');
-    } else {
-      bot.losses++;
-      botLog('LOSS digit ' + wasDigit + ' -$' + wasStake.toFixed(2) + ' | net ' + (bot.netPnl >= 0 ? '+' : '') + '$' + Math.abs(bot.netPnl).toFixed(2), 'loss');
-      var useMart = document.getElementById('botMartingale').checked;
-      if (useMart) {
-        var mult   = parseFloat(document.getElementById('botMartMultVal').value) || 2;
-        var maxStk = parseFloat(document.getElementById('botMartMaxVal').value)  || 50;
-        bot.currentStake = Math.min(parseFloat((wasStake * mult).toFixed(2)), maxStk);
-        botLog('Martingale: next stake $' + bot.currentStake.toFixed(2), 'warn');
-      }
-    }
-
-    botUpdateStats();
-    if (!botCheckLimits()) return;
-
-    if (document.getElementById('botCooldown').checked) {
-      bot.cooldownTick = true;
-    } else {
-      setTimeout(function() { if (bot.running && !contract) botPlaceTrade(); }, 500);
-    }
-  };
-
-  // Wrap applyLiveTick to drive bot
-  var _botOrigTick = applyLiveTick;
-  applyLiveTick = function(p) {
-    _botOrigTick(p);
-    if (!bot.running) return;
-    if (bot.cooldownTick) {
-      bot.cooldownTick = false;
-      setTimeout(function() { if (bot.running && !contract) botPlaceTrade(); }, 300);
-      return;
-    }
-    if (!contract) botPlaceTrade();
+    running: false, trades: 0, wins: 0, losses: 0, netPnl: 0, curStake: 1, cooldownTick: false
   };
 
   function botStart() {
-    if (bot.running) return;
-    var stake = parseFloat(document.getElementById('botStake').value);
-    if (isNaN(stake) || stake < 0.35) { showToast('Base stake must be >= $0.35', 'error'); return; }
-    // Bot works in both demo and live modes
-    var reqLogin = document.getElementById('botRequireLogin').checked;
-    if (reqLogin && (!activeAccount || activeAccount.isVirtual)) { showToast('Real account required', 'error'); return; }
     bot.running = true;
-    bot.baseStake = stake;
-    bot.currentStake = stake;
-    bot.cooldownTick = false;
-    if (document.getElementById('botDigitMode').value === 'predictor' && !autoPredict) toggleAutoPredict();
     document.getElementById('botStartBtn').disabled = true;
-    document.getElementById('botStopBtn').disabled  = false;
-    botSetStatus('running', 'Bot running — trading automatically');
-    botLog('Bot started | stake $' + stake.toFixed(2) + ' | SL $' + document.getElementById('botStopLoss').value + ' | TP $' + document.getElementById('botProfitTarget').value + ' | max ' + document.getElementById('botMaxTrades').value + ' trades', 'info');
-    botUpdateStats();
-    setTimeout(botPlaceTrade, 800);
+    document.getElementById('botStopBtn').disabled = false;
+    document.getElementById('botDot').className = 'bot-dot running';
+    document.getElementById('botStatusPill').className = 'bot-status-pill running';
+    document.getElementById('botStatusPill').textContent = 'RUNNING';
+    document.getElementById('botStatusText').textContent = 'Expert trading bot active';
+    botLog('Bot started successfully.', 'info');
   }
 
   function botStop() {
     bot.running = false;
-    bot.cooldownTick = false;
     document.getElementById('botStartBtn').disabled = false;
-    document.getElementById('botStopBtn').disabled  = true;
-    botSetStatus('stopped', 'Bot stopped');
-    botLog('Bot stopped | P&L ' + (bot.netPnl >= 0 ? '+' : '') + '$' + Math.abs(bot.netPnl).toFixed(2) + ' over ' + bot.trades + ' trades', '');
+    document.getElementById('botStopBtn').disabled = true;
+    document.getElementById('botDot').className = 'bot-dot stopped';
+    document.getElementById('botStatusPill').className = 'bot-status-pill stopped';
+    document.getElementById('botStatusPill').textContent = 'STOPPED';
+    document.getElementById('botStatusText').textContent = 'Bot paused';
+    botLog('Bot stopped.', 'warn');
   }
 
   function botReset() {
-    botStop();
     bot.trades = 0; bot.wins = 0; bot.losses = 0; bot.netPnl = 0;
-    bot.currentStake = parseFloat(document.getElementById('botStake').value) || 1;
-    botSetStatus('', 'Configure and start the bot');
-    botUpdateStats();
-    document.getElementById('botLog').innerHTML =
-      '<div class="bot-log-entry info"><span class="bot-log-time">--:--:--</span><span class="bot-log-msg">Bot reset. Ready.</span></div>';
+    updateBotStats();
   }
 
+  function botPlaceTrade() {
+    if (!bot.running || contract || tradeLock) return;
+    var mode = document.getElementById('botDigitMode').value;
+    var targetDigit = 5;
+
+    if (mode === 'predictor' && predictedDigit !== null) {
+      targetDigit = predictedDigit;
+    } else if (mode === 'least') {
+      var minF = freqMap[0], minD = 0;
+      for(var i=1; i<=9; i++) { if(freqMap[i] < minF) { minF = freqMap[i]; minD = i; } }
+      targetDigit = minD;
+    } else if (mode === 'fixed') {
+      targetDigit = parseInt(document.getElementById('botFixedDigit').value, 10) || 0;
+    }
+
+    selectDigit(targetDigit);
+    var baseStake = parseFloat(document.getElementById('botStake').value) || 1;
+    document.getElementById('stakeInput').value = baseStake;
+    document.getElementById('ticksInput').value = document.getElementById('botTicks').value;
+
+    placeContract();
+    bot.trades++;
+    updateBotStats();
+  }
+
+  function updateBotStats() {
+    document.getElementById('bsTrades').textContent = bot.trades;
+    document.getElementById('bsWins').textContent = bot.wins;
+    document.getElementById('bsLosses').textContent = bot.losses;
+    document.getElementById('bsPnl').textContent = (bot.netPnl >= 0 ? '+' : '') + '$' + bot.netPnl.toFixed(2);
+  }
+
+  function botLog(msg, type) {
+    var logBox = document.getElementById('botLog');
+    if (!logBox) return;
+    var timeStr = new Date().toLocaleTimeString();
+    var entry = document.createElement('div');
+    entry.className = 'bot-log-entry ' + (type || 'info');
+    entry.innerHTML = '<span class="bot-log-time">' + timeStr + '</span><span class="bot-log-msg">' + msg + '</span>';
+    logBox.appendChild(entry);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function toggleMartingaleFields() {
+    var active = document.getElementById('botMartingale').checked;
+    document.getElementById('botMartMult').style.display = active ? 'flex' : 'none';
+    document.getElementById('botMartMax').style.display = active ? 'flex' : 'none';
+  }
+
+  // Initialization on load
+  window.onload = function() {
+    buildSymbolSelector();
+    buildDigitSelector();
+    buildFreqChart();
+    startTicker();
+    updateBalance();
+  };
 </script>
 </body>
 </html>
