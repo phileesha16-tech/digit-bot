@@ -2205,6 +2205,18 @@
       polls++;
       if (polls > maxPolls || !contract) {
         clearInterval(interval);
+        if (contract && !contract.finished) {
+          // Never got a terminal status back — recover instead of leaving the UI stuck forever.
+          contract.finished = true;
+          tradeLock = false;
+          document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
+          document.getElementById('buyBtn').classList.remove('active-contract');
+          document.getElementById('buyBtn').disabled = false;
+          document.getElementById('contractStatus').classList.remove('visible');
+          showToast('No result received — check Deriv for this contract\u2019s outcome.', 'error');
+          contract = null;
+          refreshBalance();
+        }
         return;
       }
       fetch(BACKEND_URL + '/api/contract-result', {
@@ -2306,6 +2318,7 @@
           document.getElementById('buyBtn').disabled = false;
           showToast('Trade error: ' + data.error, 'error');
           contract = null;
+          tradeLock = false;
           return;
         }
         // Trade placed successfully
@@ -2314,6 +2327,7 @@
           contract.contractId = contractId;
           contract.realTrade = true;
         }
+        document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE (LIVE)';
         showToast('Order placed!', '');
         // Poll for result
         if (contractId) {
@@ -2328,6 +2342,7 @@
         document.getElementById('buyBtn').disabled = false;
         showToast('Network error placing trade', 'error');
         contract = null;
+        tradeLock = false;
       });
 
       tradeLock = true; // Lock to prevent double trades
@@ -2374,7 +2389,7 @@
   function processTick(digit) {
     if (!contract) return;
     if (digit === contract.digit) contract.matches++;
-    contract.ticksLeft--;
+    if (contract.ticksLeft > 0) contract.ticksLeft--;
     updateContractStatus();
     updateXml();
     if (contract.ticksLeft === 0 && !contract.realTrade) { endContract(); }
