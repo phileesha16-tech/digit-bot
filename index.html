@@ -2225,24 +2225,19 @@
         body: JSON.stringify({ token: window._patToken, accountId: activeAccount.id, contractId: contractId })
       }).then(function(r) { return r.json(); })
         .then(function(data) {
-          var c = data.data;
-          if (!c || !contract) return;
-          // Update balance
-          if (c.account_balance !== undefined) {
-            balance = parseFloat(c.account_balance);
-            updateBalance();
-          }
-          // Check if settled
-          if (c.status === 'won' || c.status === 'lost' || c.is_expired || c.is_sold) {
+          if (!data || !contract) return;
+          // Backend only responds once the contract is actually settled (is_expired/is_sold),
+          // so a successful response here always means it's done.
+          if (data.success && data.status) {
             clearInterval(interval);
             if (contract && !contract.finished) {
               contract.finished = true;
-              contract.realResult = (c.status === 'won');
-              contract.matches = c.status === 'won' ? 1 : 0;
-              contract.payout = c.status === 'won' ? parseFloat(c.payout || contract.payout) : 0;
+              contract.realResult = (data.status === 'won');
+              contract.matches = data.status === 'won' ? 1 : 0;
+              contract.payout = data.status === 'won' ? parseFloat(data.payout || contract.payout) : 0;
               // Update balance from real result
-              if (c.balance_after !== undefined) {
-                balance = parseFloat(c.balance_after);
+              if (data.balanceAfter !== undefined) {
+                balance = parseFloat(data.balanceAfter);
                 updateBalance();
               }
               endContract();
@@ -2322,7 +2317,7 @@
           return;
         }
         // Trade placed successfully
-        var contractId = data.data && (data.data.contract_id || data.data.id);
+        var contractId = data.contractId || (data.data && (data.data.contract_id || data.data.id));
         if (contract) {
           contract.contractId = contractId;
           contract.realTrade = true;
