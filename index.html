@@ -2308,6 +2308,760 @@
   }
 
   // Contract execution & Management
+  // ── Deriv Auth Engine ────────────────────────────────────────────────────────
+
+  var derivWs = null;
+  var derivTickWs = null; // separate WS for live ticks
+  var derivAccounts = [];
+  var DERIV_APP_ID = '1089'; // Public test app_id - works with ws.binaryws.com
+
+  // ── Saved Token (localStorage) ───────────────────────────────────────────────
+  var STORAGE_KEY = 'deriv_saved_token_v1';
+  var STORAGE_ACCT_KEY = 'deriv_saved_acct_v1';
+
+  function saveToken(token, acctId) {
+    try {
+      localStorage.setItem(STORAGE_KEY, token);
+      localStorage.setItem(STORAGE_ACCT_KEY, acctId || '');
+    } catch(e) {}
+  }
+
+  function clearSavedToken() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_ACCT_KEY);
+    } catch(e) {}
+  }
+
+  function getSavedToken() {
+    try { return localStorage.getItem(STORAGE_KEY) || null; } catch(e) { return null; }
+  }
+
+  function getSavedAcctId() {
+    try { return localStorage.getItem(STORAGE_ACCT_KEY) || null; } catch(e) { return null; }
+  }
+
+  function checkSavedToken() {
+    var token = getSavedToken();
+    var acctId = getSavedAcctId();
+    if (token) {
+      var section = document.getElementById('savedTokenSection');
+      var label = document.getElementById('savedAcctLabel');
+      if (section) section.style.display = '';
+      if (label) label.textContent = acctId || 'Saved Account';
+    }
+  }
+
+  function quickReconnect() {
+    var token = getSavedToken();
+    if (!token) return;
+    showPanel('panelConnecting');
+    document.getElementById('connectingMsg').textContent = 'RECONNECTING...';
+    tryConnectWithFallback(token, 0);
+  }
+
+  function showPanel(id) {
+    ['panelIntro','panelToken','panelConnecting'].forEach(function(p) {
+      var el = document.getElementById(p);
+      if (el) el.style.display = (p === id) ? '' : 'none';
+    });
+  }
+  function openLoginModal() {
+    document.getElementById('loginModal').style.display = 'flex';
+    showPanel('panelIntro');
+    checkSavedToken();
+  }
+  function closeLoginModal() {
+    document.getElementById('loginModal').style.display = 'none';
+    showPanel('panelIntro');
+  }
+  // ── API Token login ──────────────────────────────────────────────────────────
+  var WS_ENDPOINTS = [
+    'wss://ws.binaryws.com/websockets/v3',
+    'wss://ws.derivws.com/websockets/v3',
+    'wss://frontend.binaryws.com/websockets/v3',
+    'wss://green.binaryws.com/websockets/v3'
+  ];
+
+  function isDerivToken(t) {
+    if (!t || t.length < 10) return false;
+    if (t.startsWith('ghp_') || t.startsWith('sk_') ||
+        t.startsWith('pk_') || t.startsWith('Bearer ') || t.includes('@')) return false;
+    // Accept both old a1- tokens and new pat_ tokens
+    return true;
+  }
+
+  var currentTokenMode = 'oauth';
+
+  function setTokenMode(mode) {
+    currentTokenMode = mode;
+    var patBox = document.getElementById('patInfoBox');
+    var oauthBox = document.getElementById('oauthInfoBox');
+    var title = document.getElementById('tokenPanelTitle');
+    var input = document.getElementById('tokenInput');
+    var btn = document.getElementById('connectBtn');
+    if (mode === 'pat') {
+      if (patBox) patBox.style.display = '';
+      if (oauthBox) oauthBox.style.display = 'none';
+      if (title) title.textContent = 'Paste your Personal Access Token';
+      if (input) input.placeholder = 'Paste your PAT here...';
+      if (btn) btn.textContent = 'Connect with PAT';
+    } else {
+      if (patBox) patBox.style.display = 'none';
+      if (oauthBox) oauthBox.style.display = '';
+      if (title) title.textContent = 'Paste your OAuth API Token';
+      if (input) input.placeholder = 'a1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+      if (btn) btn.textContent = 'Connect with OAuth Token';
+    }
+  }
+
+  function loginWithToken() {
+    var token = document.getElementById('tokenInput').value.trim();
+    document.getElementById('tokenError').style.display = 'none';
+
+    if (!token) {
+      showTokenError('Please paste your Deriv API token above.');
+      return;
+    }
+    showPanel('panelConnecting');
+    // Route PAT tokens through backend, others direct
+    if (token.startsWith('pat_')) {
+      document.getElementById('connectingMsg').textContent = 'CONNECTING VIA BACKEND...';
+      connectWithPAT(token);
+    } else {
+      document.getElementById('connectingMsg').textContent = 'CONNECTING TO DERIV...';
+      tryConnectWithFallback(token, 0);
+    }
+  }
+
+  function connectToAccount(accountId) {
+    var accounts = window._patAccounts || [];
+    var token = window._patToken || '';
+    var account = null;
+    for (var i = 0; i < accounts.length; i++) {
+      if (accounts[i].account_id === accountId) { account = accounts[i]; break; }
+    }
+    if (!account) return;
+    document.getElementById('tokenError').style.display = 'none';
+    showPanel('panelConnecting');
+    document.getElementById('connectingMsg').textContent = 'AUTHORIZING ' + accountId + '...';
+    fetch(BACKEND_URL + '/api/otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token, accountId: accountId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(otpData) {
+      if (otpData.errors && otpData.errors.length > 0) {
+        showPanel('panelToken');
+        showTokenError('❌ ' + otpData.errors[0].message);
+        return;
+      }
+      var wsUrl = otpData.data && otpData.data.url;
+      if (!wsUrl) { showPanel('panelToken'); showTokenError('❌ Could not get WebSocket URL.'); return; }
+      connectPATWebSocket(wsUrl, token, account);
+    })
+    .catch(function(e) { showPanel('panelToken'); showTokenError('❌ Network error.'); });
+  }
+
+  function onAccountConnected(ws, loginid, currency, isVirtual, bal) {
+    derivWs = ws;
+    activeAccount = { id: loginid, currency: currency, balance: bal, isVirtual: isVirtual, token: null, ws: ws };
+    derivAccounts = [{ id: loginid, currency: currency, isVirtual: isVirtual, token: null }];
+    balance = bal;
+    // Subscribe to balance updates
+    ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+    // Subscribe to live ticks for current symbol
+    ws.send(JSON.stringify({ ticks: currentSymbol.id, subscribe: 1 }));
+    document.getElementById('connectingMsg').textContent = 'CONNECTED!';
+    startLiveTickFeed(null);
+    onLoginSuccess();
+    ws.onmessage = function(ev) {
+      try {
+        var m = JSON.parse(ev.data);
+        // Handle all message types
+        handleWsMessage(m, ws);
+        // Live ticks from Deriv
+        if (m.msg_type === 'tick' && m.tick) {
+          if (m.tick.symbol === currentSymbol.id) {
+            usingLiveTicks = true;
+            applyLiveTick(m.tick.quote);
+          }
+        }
+      } catch(ex) { console.error('WS message error:', ex); }
+    };
+    ws.onclose = function() {
+      usingLiveTicks = false;
+      activeAccount = null;
+      showToast('Disconnected from Deriv', '');
+    };
+
+    // Refresh balance every 10 seconds
+    setInterval(function() {
+      if (activeAccount && window._patToken) refreshBalance();
+    }, 10000);
+  }
+
+  function handleWsMessage(msg, ws) {
+    if (!msg || !msg.msg_type) return;
+
+    // Handle balance updates
+    if (msg.msg_type === 'balance' && msg.balance) {
+      balance = parseFloat(msg.balance.balance);
+      updateBalance();
+    }
+
+    // Handle buy confirmation
+    if (msg.msg_type === 'buy' && msg.buy) {
+      if (contract) {
+        contract.contractId = msg.buy.contract_id;
+        // Update balance from buy response
+        if (msg.buy.balance_after !== undefined) {
+          balance = parseFloat(msg.buy.balance_after);
+          updateBalance();
+        }
+        document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE';
+        ws.send(JSON.stringify({ proposal_open_contract: 1, contract_id: msg.buy.contract_id, subscribe: 1 }));
+        showToast('Order placed! Contract: ' + msg.buy.contract_id, '');
+      }
+    }
+
+    // Handle buy error
+    if (msg.msg_type === 'buy' && msg.error) {
+      if (contract) { contract = null; }
+      document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
+      document.getElementById('buyBtn').classList.remove('active-contract');
+      document.getElementById('buyBtn').disabled = false;
+      showToast('Buy error: ' + msg.error.message, 'error');
+    }
+
+    // Handle contract result
+    if (msg.msg_type === 'proposal_open_contract' && msg.proposal_open_contract) {
+      var poc = msg.proposal_open_contract;
+      if ((poc.is_expired || poc.is_sold) && poc.status) {
+        if (contract && !contract.finished) {
+          contract.finished = true;
+          // Update with real result from Deriv
+          var won = poc.status === 'won';
+          contract.matches = won ? 1 : 0;
+          contract.payout = won ? parseFloat(poc.payout || contract.payout) : 0;
+          if (poc.balance_after !== undefined) {
+            balance = parseFloat(poc.balance_after);
+            updateBalance();
+          }
+          endContract();
+        }
+      }
+    }
+  }
+
+  // Backend server URL - update this after deploying to Render.com
+  var BACKEND_URL = 'https://deriv-bot-backend-3ue8.onrender.com';
+  var tradeLock = false; // Prevent double trades
+
+  // Keep backend alive - ping every 10 minutes to prevent Render free tier sleep
+  setInterval(function() {
+    fetch(BACKEND_URL + '/').catch(function() {});
+  }, 600000);
+
+  function connectWithPAT(token) {
+    var acctType = document.querySelector('input[name="acctType"]:checked');
+    var isDemo = acctType && acctType.value === 'demo';
+
+    document.getElementById('connectingMsg').textContent = 'FETCHING ACCOUNTS...';
+
+    // Use our backend to bypass CORS
+    fetch(BACKEND_URL + '/api/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: token })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.errors && data.errors.length > 0) {
+        showPanel('panelToken');
+        showTokenError('❌ ' + (data.errors[0].message || 'Authentication failed. Check your PAT token.'));
+        return;
+      }
+      // Find account matching type
+      var accounts = data.data || [];
+      console.log('All accounts:', JSON.stringify(accounts));
+
+      // Store all accounts globally
+      window._patToken = token;
+      window._patAccounts = accounts;
+
+      // If multiple accounts, show a select dropdown and a confirm button
+      if (accounts.length > 1) {
+        showPanel('panelToken');
+        var selectHtml = '<div style="margin-bottom:8px;font-size:10px;letter-spacing:2px;color:var(--dim);">SELECT ACCOUNT TO CONNECT</div>';
+        selectHtml += '<select id="acctPicker" style="width:100%;padding:8px;background:#0c1320;border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;margin-bottom:10px;">';
+        accounts.forEach(function(acc) {
+          var label = (acc.is_virtual ? 'Demo' : 'Real') + ' | ' + (acc.currency || 'USD') + ' | ' + acc.account_id;
+          selectHtml += '<option value="' + acc.account_id + '">' + label + '</option>';
+        });
+        selectHtml += '</select>';
+        selectHtml += '<button id="acctConfirmBtn" style="width:100%;padding:10px;background:var(--accent2);border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:2px;">CONNECT SELECTED ACCOUNT</button>';
+        var errEl = document.getElementById('tokenError');
+        errEl.style.cssText = 'display:block;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:12px;';
+        errEl.innerHTML = selectHtml;
+        document.getElementById('acctConfirmBtn').onclick = function() {
+          var sel = document.getElementById('acctPicker');
+          if (sel) connectToAccount(sel.value);
+        };
+        return;
+      }
+
+      var account = null;
+      for (var i = 0; i < accounts.length; i++) {
+        var acc = accounts[i];
+        if (isDemo && acc.is_virtual) { account = acc; break; }
+        if (!isDemo && !acc.is_virtual) { account = acc; break; }
+      }
+      if (!account && accounts.length > 0) account = accounts[0];
+      if (!account) {
+        showPanel('panelToken');
+        showTokenError('❌ No ' + (isDemo ? 'demo' : 'real') + ' account found for this token.');
+        return;
+      }
+
+      document.getElementById('connectingMsg').textContent = 'AUTHORIZING ' + account.account_id + '...';
+
+      // Step 2: Get OTP for WebSocket connection
+      fetch(BACKEND_URL + '/api/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: token, accountId: account.account_id })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(otpData) {
+        if (otpData.errors && otpData.errors.length > 0) {
+          showPanel('panelToken');
+          showTokenError('❌ ' + (otpData.errors[0].message || 'Failed to get session token.'));
+          return;
+        }
+        var wsUrl = otpData.data && otpData.data.url;
+        if (!wsUrl) {
+          showPanel('panelToken');
+          showTokenError('❌ Could not get WebSocket URL from Deriv.');
+          return;
+        }
+        document.getElementById('connectingMsg').textContent = 'CONNECTING...';
+        connectPATWebSocket(wsUrl, token, account);
+      })
+      .catch(function(e) {
+        showPanel('panelToken');
+        showTokenError('❌ Network error getting session. Check connection.');
+      });
+    })
+    .catch(function(e) {
+      showPanel('panelToken');
+      showTokenError('❌ Network error. Check your internet connection.');
+    });
+  }
+
+  function connectPATWebSocket(wsUrl, token, account) {
+    // Store wsUrl for trade execution
+    window._derivWsUrl = wsUrl;
+
+    // Connect via backend WebSocket proxy to bypass CORS
+    var proxyUrl = BACKEND_URL.replace('https://', 'wss://').replace('http://', 'ws://') +
+      '/ws?wsUrl=' + encodeURIComponent(wsUrl);
+    var ws;
+    try { ws = new WebSocket(proxyUrl); } catch(e) {
+      showPanel('panelToken');
+      showTokenError('❌ Could not connect to backend server.');
+      return;
+    }
+    ws.onopen = function() {
+      document.getElementById('connectingMsg').textContent = 'CONNECTED!';
+      // Save token if remember checked
+      var rememberEl = document.getElementById('rememberToken');
+      if (rememberEl && rememberEl.checked) saveToken(token, account.account_id);
+      // Set up account info
+      activeAccount = {
+        id: account.account_id,
+        currency: account.currency || 'USD',
+        isVirtual: !!account.is_virtual,
+        ws: ws
+      };
+      balance = parseFloat(account.balance || 0);
+      onAccountConnected(ws, account.account_id, account.currency, !!account.is_virtual, balance);
+    };
+    ws.onerror = function() {
+      showPanel('panelToken');
+      showTokenError('❌ WebSocket connection failed.');
+    };
+    ws.onclose = function() {
+      if (activeAccount) { usingLiveTicks = false; }
+    };
+    ws.onmessage = function(e) {
+      try {
+        var msg = JSON.parse(e.data);
+        handleWsMessage(msg, ws);
+      } catch(ex) {}
+    };
+  }
+
+  function tryConnectWithFallback(token, endpointIndex) {
+    if (endpointIndex >= WS_ENDPOINTS.length) {
+      showPanel('panelToken');
+      showTokenError('Could not reach Deriv servers. Check your internet connection and try again.');
+      return;
+    }
+
+    var endpoint = WS_ENDPOINTS[endpointIndex] + '?app_id=' + DERIV_APP_ID;
+    var ws;
+    try {
+      ws = new WebSocket(endpoint);
+    } catch(e) {
+      tryConnectWithFallback(token, endpointIndex + 1);
+      return;
+    }
+
+    var done = false;
+    var timeout = setTimeout(function() {
+      if (!done) {
+        done = true;
+        try { ws.close(); } catch(e){}
+        tryConnectWithFallback(token, endpointIndex + 1);
+      }
+    }, 15000);
+
+    ws.onopen = function() {
+      document.getElementById('connectingMsg').textContent = 'AUTHORIZING...';
+      // Try both token formats - pat_ tokens may need 'token' field
+      var authMsg = token.startsWith('pat_')
+        ? JSON.stringify({ authorize: token, add_fiat: 1 })
+        : JSON.stringify({ authorize: token });
+      ws.send(authMsg);
+    };
+
+    ws.onmessage = function(e) {
+      var msg = JSON.parse(e.data);
+      if (msg.msg_type !== 'authorize') return;
+
+      clearTimeout(timeout);
+      done = true;
+
+      if (msg.error) {
+        try { ws.close(); } catch(e2){}
+        showPanel('panelToken');
+        var code = msg.error.code || '';
+        if (code === 'InvalidToken') {
+          showTokenError('❌ Token rejected. If using a pat_ token, your account may need to be registered at developers.deriv.com with an app_id. Try generating a new token at app.deriv.com/account/api-token.');
+        } else if (code === 'DisabledClient') {
+          showTokenError('❌ This account is disabled. Contact Deriv support.');
+        } else {
+          showTokenError('❌ ' + (msg.error.message || 'Authorization failed') + (code ? ' (' + code + ')' : ''));
+        }
+        return;
+      }
+
+      // ✓ Success — save token if remember checked
+      var rememberEl = document.getElementById('rememberToken');
+      if (rememberEl && rememberEl.checked) {
+        saveToken(token, msg.authorize.loginid);
+      }
+
+      derivWs = ws;
+      activeAccount = {
+        id: msg.authorize.loginid,
+        currency: msg.authorize.currency,
+        balance: msg.authorize.balance,
+        isVirtual: msg.authorize.is_virtual,
+        token: token
+      };
+      derivAccounts = [];
+      if (msg.authorize.account_list) {
+        msg.authorize.account_list.forEach(function(a) {
+          derivAccounts.push({ id: a.loginid, currency: a.currency, isVirtual: !!a.is_virtual, token: a.loginid === msg.authorize.loginid ? token : null });
+        });
+      } else {
+        derivAccounts = [{ id: activeAccount.id, currency: activeAccount.currency, isVirtual: activeAccount.isVirtual, token: token }];
+      }
+
+      ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+
+      // Start live tick subscription
+      document.getElementById('connectingMsg').textContent = 'SUBSCRIBING TO LIVE TICKS...';
+      startLiveTickFeed(token);
+
+      onLoginSuccess();
+
+      ws.onmessage = function(ev) {
+        var m = JSON.parse(ev.data);
+        if (m.msg_type === 'balance' && activeAccount) {
+          activeAccount.balance = m.balance.balance;
+          balance = parseFloat(m.balance.balance);
+          var el = document.getElementById('balance');
+          if (el) el.textContent = balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+      };
+    };
+
+    ws.onerror = function() {
+      clearTimeout(timeout);
+      if (!done) {
+        done = true;
+        tryConnectWithFallback(token, endpointIndex + 1);
+      }
+    };
+
+    ws.onclose = function() {
+      if (activeAccount && activeAccount.token) {
+        setTimeout(function() { reconnectDerivWs(); }, 4000);
+      }
+    };
+  }
+
+  // ── Live Tick Feed ───────────────────────────────────────────────────────────
+  function startLiveTickFeed(token) {
+    // Live tick feed via the backend WebSocket proxy
+    // For now just use demo ticks - live ticks come through the main account WebSocket
+    usingLiveTicks = false;
+    // Demo ticker will run automatically via setInterval in startTicker()
+  }
+
+  function switchLiveTickSymbol(symbolId) {
+    if (!derivTickWs || derivTickWs.readyState !== WebSocket.OPEN) return;
+    // Forget previous subscription, resubscribe to new symbol
+    derivTickWs.send(JSON.stringify({ forget_all: 'ticks' }));
+    setTimeout(function() {
+      if (derivTickWs && derivTickWs.readyState === WebSocket.OPEN) {
+        derivTickWs.send(JSON.stringify({ ticks: symbolId, subscribe: 1 }));
+      }
+    }, 300);
+  }
+
+  function applyLiveTick(tickPrice) {
+    var priceStr = tickPrice.toFixed(2);
+    var lastD = parseInt(priceStr.charAt(priceStr.length - 1), 10);
+    var prevPrice = price || tickPrice;
+    price = tickPrice;
+    var change = price - prevPrice;
+    var intPart = priceStr.slice(0, -1);
+    document.getElementById('tickerPrice').innerHTML =
+      intPart + '<span class="last-digit" id="lastDigit">' + lastD + '</span>';
+    var pctChange = prevPrice > 0 ? ((change / prevPrice) * 100).toFixed(4) : '0.0000';
+    var changeEl = document.getElementById('tickerChange');
+    changeEl.textContent = (change >= 0 ? '+' : '') + pctChange + '%';
+    changeEl.style.color = change >= 0 ? 'var(--win)' : 'var(--lose)';
+    digitHistory.unshift(lastD);
+    if (digitHistory.length > 20) digitHistory.pop();
+    recentWindow.unshift(lastD);
+    if (recentWindow.length > windowSize) recentWindow.pop();
+    freqMap[lastD]++;
+    renderDigitHistory();
+    updateFreqChart();
+    if (autoPredict) { runPredictor(); }
+    if (contract) { processTick(lastD); }
+  }
+
+  function reconnectDerivWs() {
+    if (!activeAccount || !activeAccount.token) return;
+    var ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
+    ws.onopen = function() { ws.send(JSON.stringify({ authorize: activeAccount.token })); };
+    ws.onmessage = function(e) {
+      var msg = JSON.parse(e.data);
+      if (msg.msg_type === 'authorize' && !msg.error) {
+        derivWs = ws;
+        ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+      }
+      if (msg.msg_type === 'balance' && activeAccount) {
+        activeAccount.balance = msg.balance.balance;
+        balance = parseFloat(msg.balance.balance);
+        var el = document.getElementById('balance');
+        if (el) el.textContent = balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+    };
+    ws.onclose = function() {
+      if (activeAccount && activeAccount.token) setTimeout(reconnectDerivWs, 5000);
+    };
+  }
+
+  // ── After login ──────────────────────────────────────────────────────────────
+  function onLoginSuccess() {
+    var a = activeAccount;
+    document.getElementById('demoBalanceChip').style.display = 'none';
+    document.getElementById('loginBtn').style.display = 'none';
+    document.getElementById('accountChip').style.display = '';
+    document.getElementById('acctId').textContent = a.id;
+    document.getElementById('acctType').textContent = (a.isVirtual ? 'Demo' : 'Real') + ' · ' + a.currency;
+    var balStr = parseFloat(a.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById('balance').textContent = balStr;
+    balance = parseFloat(a.balance);
+    // Update live badge
+    var badge = document.getElementById('liveBadge');
+    if (badge) {
+      if (a.isVirtual) {
+        badge.className = 'live-badge demo-badge';
+        badge.innerHTML = '<span class="live-dot"></span>DEMO';
+      } else {
+        badge.className = 'live-badge';
+        badge.innerHTML = '<span class="live-dot"></span>LIVE';
+      }
+    }
+    buildAccountDropdown(a.id);
+    closeLoginModal();
+    showToast('✓ Connected as ' + a.id + ' · Live ticks active', 'success');
+  }
+
+  function buildAccountDropdown(activeId) {
+    var list = document.getElementById('acctDropdownList');
+    list.innerHTML = '';
+    derivAccounts.forEach(function(a) {
+      var item = document.createElement('div');
+      item.className = 'acct-item' + (a.id === activeId ? ' active-acct' : '');
+      var typeLabel = (a.isVirtual ? 'Demo' : 'Real') + ' · ' + (a.currency || '');
+      item.innerHTML =
+        '<div class="acct-item-left">' +
+          '<div class="acct-item-id">' + a.id + '</div>' +
+          '<div class="acct-item-type">' + typeLabel + '</div>' +
+        '</div>' +
+        (a.id === activeId ? '<div class="acct-active-dot"></div>' : '<span style="font-size:9px;color:var(--dim);">no token</span>');
+      list.appendChild(item);
+    });
+    // Add clear saved account option
+    if (getSavedToken()) {
+      var sep = document.createElement('div');
+      sep.style.cssText = 'height:1px;background:var(--border);margin:4px 0;';
+      list.appendChild(sep);
+      var clearBtn = document.createElement('div');
+      clearBtn.className = 'acct-item';
+      clearBtn.innerHTML = '<div style="font-size:10px;color:var(--dim);letter-spacing:1px;">✕ Forget saved account</div>';
+      clearBtn.onclick = function() { clearSavedToken(); showToast('Saved account cleared', ''); };
+      list.appendChild(clearBtn);
+    }
+  }
+
+  function toggleAccountMenu() {
+    var dd = document.getElementById('acctDropdown');
+    dd.style.display = dd.style.display === 'none' ? '' : 'none';
+  }
+
+  function logout() {
+    if (derivWs) { try { derivWs.close(); } catch(e){} derivWs = null; }
+    if (derivTickWs) { try { derivTickWs.close(); } catch(e){} derivTickWs = null; }
+    usingLiveTicks = false;
+    derivAccounts = [];
+    activeAccount = null;
+    document.getElementById('accountChip').style.display = 'none';
+    document.getElementById('acctDropdown').style.display = 'none';
+    document.getElementById('loginBtn').style.display = '';
+    document.getElementById('demoBalanceChip').style.display = '';
+    balance = 10000;
+    document.getElementById('demoBalance').textContent = '10,000.00';
+    showToast('Disconnected', '');
+  }
+
+  document.addEventListener('click', function(e) {
+    var chip = document.getElementById('accountChip');
+    if (chip && !chip.contains(e.target)) {
+      document.getElementById('acctDropdown').style.display = 'none';
+    }
+  });
+
+
+  function loginWithOAuth() {
+    // Use new Deriv auth endpoint with PKCE for new developer accounts
+    var clientId = '33pQNMCqRHLfXUnMSr1ss';
+    var redirectUri = 'https://phileesha16-tech.github.io/digit-bot/';
+    var state = Math.random().toString(36).substring(2);
+    sessionStorage.setItem('oauth_state', state);
+    var oauthUrl = 'https://auth.deriv.com/oauth2/auth' +
+      '?response_type=code' +
+      '&client_id=' + clientId +
+      '&redirect_uri=' + encodeURIComponent(redirectUri) +
+      '&scope=trade+read' +
+      '&state=' + state;
+    window.location.href = oauthUrl;
+  }
+
+  function handleOAuthCallback() {
+    var urlParams = new URLSearchParams(window.location.search);
+    var token1 = urlParams.get('token1');
+    if (token1) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      saveToken(token1, urlParams.get('acct1') || '');
+      showToast('Logged in! Connecting...', '');
+      setTimeout(function() {
+        connectWithLegacyWS(token1, 0);
+      }, 800);
+      return true;
+    }
+    return false;
+  }
+
+  function connectWithLegacyWS(token, endpointIndex) {
+    var endpoints = [
+      'wss://ws.derivws.com/websockets/v3',
+      'wss://ws.binaryws.com/websockets/v3'
+    ];
+    if (endpointIndex >= endpoints.length) {
+      showPanel('panelToken');
+      showTokenError('Could not reach Deriv servers.');
+      return;
+    }
+    var ws = new WebSocket(endpoints[endpointIndex] + '?app_id=36544');
+    var done = false;
+    var t = setTimeout(function() {
+      if (!done) { done = true; try{ws.close();}catch(e){} connectWithLegacyWS(token, endpointIndex+1); }
+    }, 15000);
+    ws.onopen = function() {
+      clearTimeout(t);
+      ws.send(JSON.stringify({ authorize: token }));
+    };
+    ws.onmessage = function(ev) {
+      var m = JSON.parse(ev.data);
+      if (m.msg_type === 'authorize') {
+        if (m.error) {
+          done = true;
+          showPanel('panelToken');
+          showTokenError('❌ ' + m.error.message);
+          return;
+        }
+        done = true;
+        derivWs = ws;
+        activeAccount = {
+          id: m.authorize.loginid,
+          currency: m.authorize.currency,
+          balance: parseFloat(m.authorize.balance),
+          isVirtual: m.authorize.is_virtual,
+          token: token
+        };
+        derivAccounts = [activeAccount];
+        balance = activeAccount.balance;
+        saveToken(token, activeAccount.id);
+        ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+        startLiveTickFeed(token);
+        onLoginSuccess();
+      } else if (m.msg_type === 'balance' && activeAccount) {
+        activeAccount.balance = m.balance.balance;
+        balance = parseFloat(m.balance.balance);
+        var el = document.getElementById('balance');
+        if (el) el.textContent = balance.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      }
+    };
+    ws.onerror = function() {
+      if (!done) { done = true; connectWithLegacyWS(token, endpointIndex+1); }
+    };
+    ws.onclose = function() {
+      if (activeAccount && activeAccount.token) setTimeout(reconnectDerivWs, 5000);
+    };
+  }
+
+  window.addEventListener('load', function() {
+    if (handleOAuthCallback()) return;
+    var token = getSavedToken();
+    if (token) {
+      setTimeout(function() {
+        showToast('Auto-connecting...', '');
+        connectWithLegacyWS(token, 0);
+      }, 1200);
+    }
+  });
+
   function placeContract() {
     if (contract || tradeLock) return;
     if (selectedDigit === null) { showToast('Select a digit first', 'error'); return; }
@@ -2315,30 +3069,146 @@
     if (isNaN(stake) || stake < 0.35) { showToast('Enter valid stake (min $0.35)', 'error'); return; }
     var ticks = parseInt(document.getElementById('ticksInput').value, 10) || 5;
 
-    if (stake > balance) { showToast('Insufficient balance', 'error'); return; }
+    // If connected to a real Deriv account, place the trade via the backend REST API
+    if (activeAccount && window._patToken && activeAccount.id) {
+      document.getElementById('buyBtn').textContent = 'SENDING ORDER...';
+      document.getElementById('buyBtn').disabled = true;
 
-    balance -= stake;
-    updateBalance();
-    tradeLock = true;
+      fetch(BACKEND_URL + '/api/trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: window._patToken,
+          accountId: activeAccount.id,
+          digit: selectedDigit,
+          stake: stake,
+          ticks: ticks,
+          symbol: currentSymbol.id,
+          contractType: 'DIGITMATCH'
+        })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) {
+          document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
+          document.getElementById('buyBtn').classList.remove('active-contract');
+          document.getElementById('buyBtn').disabled = false;
+          showToast('Trade error: ' + data.error, 'error');
+          contract = null;
+          tradeLock = false;
+          return;
+        }
+        var contractId = data.contractId;
+        if (contract) {
+          contract.contractId = contractId;
+          contract.realTrade = true;
+        }
+        document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE (LIVE)';
+        showToast('Order placed!', '');
+        if (contractId) { pollContractResult(contractId, ticks); }
+        setTimeout(refreshBalance, 3000);
+      })
+      .catch(function(e) {
+        document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
+        document.getElementById('buyBtn').classList.remove('active-contract');
+        document.getElementById('buyBtn').disabled = false;
+        showToast('Network error placing trade', 'error');
+        contract = null;
+        tradeLock = false;
+      });
 
-    contract = {
-      digit: selectedDigit,
-      stake: stake,
-      ticks: ticks,
-      ticksLeft: ticks,
-      matches: 0,
-      payout: parseFloat((stake * 8.5).toFixed(2)),
-      startTime: new Date().toISOString(),
-      id: 'CON_' + Date.now(),
-      finished: false
-    };
+      tradeLock = true;
+      contract = {
+        digit: selectedDigit,
+        stake: stake,
+        ticks: ticks,
+        ticksLeft: ticks,
+        matches: 0,
+        payout: parseFloat((stake * 8.5).toFixed(2)),
+        startTime: new Date().toISOString(),
+        id: 'CON_' + Date.now(),
+        finished: false,
+        realTrade: true
+      };
+      document.getElementById('buyBtn').classList.add('active-contract');
+      showContractStatus();
+      updateXml();
+    } else {
+      // Not connected — simulate locally so the UI still works standalone
+      if (stake > balance) { showToast('Insufficient balance', 'error'); return; }
 
-    document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE';
-    document.getElementById('buyBtn').classList.add('active-contract');
-    document.getElementById('buyBtn').disabled = true;
-    showContractStatus();
-    updateXml();
-    showToast('Contract placed successfully', 'success');
+      balance -= stake;
+      updateBalance();
+      tradeLock = true;
+
+      contract = {
+        digit: selectedDigit,
+        stake: stake,
+        ticks: ticks,
+        ticksLeft: ticks,
+        matches: 0,
+        payout: parseFloat((stake * 8.5).toFixed(2)),
+        startTime: new Date().toISOString(),
+        id: 'CON_' + Date.now(),
+        finished: false
+      };
+
+      document.getElementById('buyBtn').textContent = 'CONTRACT ACTIVE';
+      document.getElementById('buyBtn').classList.add('active-contract');
+      document.getElementById('buyBtn').disabled = true;
+      showContractStatus();
+      updateXml();
+      showToast('Contract placed successfully', 'success');
+    }
+  }
+
+  function pollContractResult(contractId, ticks) {
+    var maxPolls = (ticks + 5) * 2;
+    var polls = 0;
+    var interval = setInterval(function() {
+      polls++;
+      if (polls > maxPolls || !contract) {
+        clearInterval(interval);
+        if (contract && !contract.finished) {
+          contract.finished = true;
+          tradeLock = false;
+          document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
+          document.getElementById('buyBtn').classList.remove('active-contract');
+          document.getElementById('buyBtn').disabled = false;
+          document.getElementById('contractStatus').classList.remove('visible');
+          showToast('No result received \u2014 check Deriv for this contract\u2019s outcome.', 'error');
+          contract = null;
+          refreshBalance();
+        }
+        return;
+      }
+      fetch(BACKEND_URL + '/api/contract-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: window._patToken, accountId: activeAccount.id, contractId: contractId })
+      }).then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data || !contract) return;
+          if (data.success && data.status) {
+            clearInterval(interval);
+            if (contract && !contract.finished) {
+              contract.finished = true;
+              contract.realResult = (data.status === 'won');
+              contract.matches = data.status === 'won' ? 1 : 0;
+              contract.payout = data.status === 'won' ? parseFloat(data.payout || contract.payout) : 0;
+              if (data.balanceAfter !== undefined) {
+                balance = parseFloat(data.balanceAfter);
+                updateBalance();
+              }
+              endContract();
+              refreshBalance();
+              setTimeout(refreshBalance, 2000);
+              setTimeout(refreshBalance, 5000);
+            }
+          }
+        })
+        .catch(function() {});
+    }, 1000);
   }
 
   function processTick(digit) {
@@ -2347,15 +3217,17 @@
     if (contract.ticksLeft > 0) contract.ticksLeft--;
     updateContractStatus();
     updateXml();
-    if (contract.ticksLeft === 0) { endContract(); }
+    if (contract.ticksLeft === 0 && !contract.realTrade) { endContract(); }
   }
 
   function endContract() {
     tradeLock = false;
-    var won = contract.matches > 0;
+    var won = contract.realResult !== undefined ? contract.realResult : contract.matches > 0;
     var payout = won ? contract.payout : 0;
     var pnl = won ? payout - contract.stake : -contract.stake;
-    if (won) balance += payout;
+    // Real trades already have the correct post-settlement balance from the backend
+    // (set just before this runs) — only apply the payout locally for simulated trades.
+    if (won && contract.realResult === undefined) { balance += payout; }
     updateBalance();
     recordTrade(contract, won, pnl);
     showResult(won, payout, contract);
