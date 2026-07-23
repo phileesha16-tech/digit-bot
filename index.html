@@ -1798,12 +1798,12 @@
           </div>
         </div>
         <div class="predict-confidence">
-          <div class="confidence-label">ACTUAL WIN RATE</div>
+          <div class="confidence-label">MODEL CONFIDENCE</div>
           <div class="confidence-val" id="confidenceVal">—</div>
           <div class="confidence-bar-wrap">
             <div class="confidence-bar-fill" id="confidenceFill" style="width:0%"></div>
           </div>
-          <div style="font-size:9px;color:var(--muted);margin-top:4px;">Random baseline: 10% · Breakeven at 8.5x payout: 11.8%</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:4px;">Heuristic baseline: 10% · Confidence is model-based, not guaranteed.</div>
         </div>
       </div>
 
@@ -2147,6 +2147,7 @@
     }
 
     // Update digit history
+    if (digitHistory.length > 0) { updateTransitionModel(digitHistory[0], lastD); }
     digitHistory.unshift(lastD);
     if (digitHistory.length > 20) digitHistory.pop();
     recentWindow.unshift(lastD);
@@ -2616,96 +2617,215 @@
 
   // ── AI Predictor Engine ─────────────────────────────────────────────────────
 
+  var predictorConfidence = 0;
+  var predictorState = {
+    transition: (function() {
+      var matrix = [];
+      for (var i = 0; i < 10; i++) {
+        var row = [];
+        for (var j = 0; j < 10; j++) row.push(0);
+        matrix.push(row);
+      }
+      return matrix;
+    })(),
+    stableDigit: null,
+    stableCount: 0
+  };
+
+  function clampNumber(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+  }
+
+  function digitIndexOf(scores, digit) {
+    for (var i = 0; i < scores.length; i++) {
+      if (scores[i].digit === digit) return i;
+    }
+    return -1;
+  }
+
+  function updateTransitionModel(prevDigit, nextDigit) {
+    if (prevDigit === null || prevDigit === undefined) return;
+    if (nextDigit === null || nextDigit === undefined) return;
+    if (!predictorState.transition[prevDigit]) return;
+    predictorState.transition[prevDigit][nextDigit] += 1;
+  }
+
   function calcMomentum(d) {
-    // Split recent window into two halves; compare frequency in newer vs older half
     if (recentWindow.length < 4) return 0;
-    var half = Math.floor(recentWindow.length / 2);
+    var half = Math.max(1, Math.floor(recentWindow.length / 2));
     var newer = recentWindow.slice(0, half);
     var older = recentWindow.slice(half);
-    var newCount = newer.filter(function(x) { return x === d; }).length;
-    var oldCount = older.filter(function(x) { return x === d; }).length;
-    var newRate = newCount / newer.length;
-    var oldRate = oldCount / older.length;
-    return newRate - oldRate; // positive = rising, negative = falling
+    var newCount = 0;
+    var oldCount = 0;
+    for (var i = 0; i < newer.length; i++) if (newer[i] === d) newCount++;
+    for (var j = 0; j < older.length; j++) if (older[j] === d) oldCount++;
+    var newRate = newer.length ? newCount / newer.length : 0;
+    var oldRate = older.length ? oldCount / older.length : 0;
+    return newRate - oldRate;
+  }
+
+  function calcRecencyScore(d) {
+    var score = 0;
+    var weight = 1;
+    for (var i = 0; i < recentWindow.length; i++) {
+      if (recentWindow[i] === d) score += weight;
+      weight *= 0.82;
+    }
+    return score;
+  }
+
+  function calcStreakLength(d) {
+    var streak = 0;
+    for (var i = 0; i < recentWindow.length; i++) {
+      if (recentWindow[i] === d) streak++;
+      else break;
+    }
+    return streak;
+  }
+
+  function calcTransitionScore(prevDigit, d) {
+    if (prevDigit === null || prevDigit === undefined) return 0.1;
+    var row = predictorState.transition[prevDigit];
+    if (!row) return 0.1;
+    var total = 0;
+    for (var i = 0; i < row.length; i++) total += row[i];
+    return (row[d] + 1) / (total + 10);
+  }
+
+  function calcDiversityPenalty() {
+    if (recentWindow.length === 0) return 0;
+    var seen = {};
+    var uniqueCount = 0;
+    for (var i = 0; i < recentWindow.length; i++) {
+      var d = recentWindow[i];
+      if (!seen[d]) {
+        seen[d] = true;
+        uniqueCount++;
+      }
+    }
+    return uniqueCount / recentWindow.length;
   }
 
   function runPredictor() {
     if (recentWindow.length < 4) return;
 
+    var prevDigit = recentWindow[0];
     var scores = [];
+
     for (var d = 0; d <= 9; d++) {
+      var recency = calcRecencyScore(d);
       var momentum = calcMomentum(d);
-      var recentCount = recentWindow.filter(function(x) { return x === d; }).length;
-      var recentRate = recentCount / recentWindow.length;
-      // Score = momentum weighted heavily + recent rate bonus
-      var score = momentum * 2.5 + recentRate * 1.0;
-      scores.push({ digit: d, score: score, momentum: momentum, rate: recentRate });
+      var transition = calcTransitionScore(prevDigit, d);
+      var streak = calcStreakLength(d);
+      var streakBonus = streak > 1 ? Math.min(0.25, (streak - 1) * 0.07) : 0;
+      var score = (recency * 0.45) + (momentum * 1.25) + (transition * 1.4) + streakBonus;
+
+      scores.push({
+        digit: d,
+        score: score,
+        recency: recency,
+        momentum: momentum,
+        transition: transition,
+        streak: streak
+      });
     }
 
-    // Sort by score descending — pick rising digits
     scores.sort(function(a, b) { return b.score - a.score; });
 
     var best = scores[0];
+    var second = scores[1] || scores[0];
     var prevPredicted = predictedDigit;
-    predictedDigit = best.digit;
+    var currentPredictedScore = prevPredicted === null ? null : scores[digitIndexOf(scores, prevPredicted)];
+    var shouldKeepPrevious = false;
 
-    // Honest stat: this game's ticks are an independent random process (that's how Deriv's
-    // volatility indices are designed), so there is no real "confidence" to compute per pick.
-    // Show the actual tracked win rate instead of a fabricated per-call score.
-    var totalTrades = tradeHistory.length;
-    var totalWins = tradeHistory.filter(function(t) { return t.won; }).length;
-    var actualWinRate = totalTrades > 0 ? Math.round((totalWins / totalTrades) * 100) : null;
-
-    // Describe what the rule actually did, without implying it predicts anything
-    var momentumPct = (best.momentum * 100).toFixed(0);
-    var reason;
-    if (best.momentum > 0.05) {
-      reason = 'Selected: digit ' + best.digit + ' appeared ' + momentumPct + '% more often in the recent half-window (no predictive basis — ticks are independent)';
-    } else {
-      reason = 'Selected: digit ' + best.digit + ' — highest recent frequency ' + (best.rate * 100).toFixed(0) + '% (no predictive basis — ticks are independent)';
+    if (currentPredictedScore && prevPredicted !== best.digit) {
+      shouldKeepPrevious = currentPredictedScore.score >= (best.score * 0.96);
+      if (shouldKeepPrevious) {
+        best = currentPredictedScore;
+      }
     }
 
-    // Update UI
+    var margin = best.score - second.score;
+    var spread = scores[scores.length - 1] ? (best.score - scores[scores.length - 1].score) : best.score;
+    var diversityPenalty = calcDiversityPenalty() * 8;
+    var sampleBonus = clampNumber(recentWindow.length * 1.4, 0, 14);
+    var confidence = 30 + (margin * 100) + (spread * 18) + sampleBonus - diversityPenalty;
+
+    if (recentWindow.length < 6) {
+      confidence = Math.min(confidence, 55);
+    }
+    if (best.streak >= 4) {
+      confidence += 3;
+    }
+    confidence = clampNumber(confidence, 5, 96);
+    predictorConfidence = Math.round(confidence);
+
+    if (prevPredicted !== best.digit) {
+      predictorState.stableDigit = best.digit;
+      predictorState.stableCount = 1;
+    } else {
+      predictorState.stableCount++;
+    }
+
+    predictedDigit = best.digit;
+
+    var reasonParts = [];
+    reasonParts.push('recency ' + best.recency.toFixed(2));
+    reasonParts.push('transition ' + best.transition.toFixed(2));
+    reasonParts.push('momentum ' + (best.momentum >= 0 ? '+' : '') + best.momentum.toFixed(2));
+    if (best.streak > 1) reasonParts.push('streak ' + best.streak + 'x');
+    if (shouldKeepPrevious) reasonParts.push('stabilized to prevent noise');
+
+    var reason;
+    if (recentWindow.length < 6) {
+      reason = 'Learning phase: digit ' + best.digit + ' selected by composite score (' + reasonParts.join(' · ') + ').';
+    } else {
+      reason = 'Composite model favours digit ' + best.digit + ' (' + reasonParts.join(' · ') + ').';
+    }
+
     var badge = document.getElementById('predictBadge');
     var changed = prevPredicted !== predictedDigit;
+
     badge.textContent = predictedDigit;
     badge.classList.remove('dim-badge');
     if (changed) {
       badge.classList.remove('updated');
-      void badge.offsetWidth; // force reflow
+      void badge.offsetWidth;
       badge.classList.add('updated');
-      // Auto-select the digit in the main UI
       selectDigit(predictedDigit);
     }
-    document.getElementById('predictReason').textContent = reason;
-    if (actualWinRate === null) {
-      document.getElementById('confidenceVal').textContent = 'No trades yet';
-      document.getElementById('confidenceFill').style.width = '0%';
-    } else {
-      document.getElementById('confidenceVal').textContent = actualWinRate + '% (' + totalTrades + ' trades)';
-      document.getElementById('confidenceFill').style.width = actualWinRate + '%';
-    }
 
-    // Render trend sparkline
+    document.getElementById('predictReason').textContent = reason;
+    document.getElementById('confidenceVal').textContent = predictorConfidence + '%';
+    document.getElementById('confidenceFill').style.width = predictorConfidence + '%';
+
     renderTrendRow(scores);
 
-    // Auto-buy if enabled and no active contract
     if (autoBuy && !contract && !tradeLock) {
-      placeContract();
+      if (predictorConfidence >= 55) {
+        document.getElementById('autoStatusBadge').textContent = 'READY';
+        placeContract();
+      } else {
+        document.getElementById('autoStatusBadge').textContent = 'WAITING';
+      }
     }
   }
 
   function renderTrendRow(scores) {
     var row = document.getElementById('trendRow');
     row.innerHTML = '';
-    // Show all 10 digits sorted 0-9 with rising/falling colour
+
     var byDigit = {};
-    scores.forEach(function(s) { byDigit[s.digit] = s; });
-    var maxRate = 0;
-    scores.forEach(function(s) { if (s.rate > maxRate) maxRate = s.rate; });
+    var maxScore = 0;
+    for (var i = 0; i < scores.length; i++) {
+      var s = scores[i];
+      byDigit[s.digit] = s;
+      if (s.score > maxScore) maxScore = s.score;
+    }
+    if (maxScore <= 0) maxScore = 1;
 
     for (var d = 0; d <= 9; d++) {
-      var s = byDigit[d];
+      var s = byDigit[d] || { score: 0, momentum: 0 };
       var item = document.createElement('div');
       var cls = 'trend-item';
       if (d === predictedDigit) cls += ' predicted';
@@ -2713,7 +2833,7 @@
       else if (s.momentum < -0.04) cls += ' falling';
       item.className = cls;
 
-      var pct = maxRate > 0 ? Math.max(5, (s.rate / maxRate) * 100) : 5;
+      var pct = Math.max(5, (s.score / maxScore) * 100);
       var arrow = s.momentum > 0.04 ? '▲' : (s.momentum < -0.04 ? '▼' : '');
 
       item.innerHTML =
@@ -2739,7 +2859,6 @@
     } else {
       track.classList.remove('on');
       label.textContent = 'OFF';
-      // Reset predict display
       document.getElementById('predictBadge').textContent = '—';
       document.getElementById('predictBadge').classList.add('dim-badge');
       document.getElementById('predictReason').textContent = 'Enable to start';
@@ -2747,12 +2866,16 @@
       document.getElementById('confidenceFill').style.width = '0%';
       document.getElementById('trendRow').innerHTML = '';
       predictedDigit = null;
-      if (autoBuy) toggleAutoBuy(); // also turn off auto-buy
+      predictorConfidence = 0;
+      predictorState.stableDigit = null;
+      predictorState.stableCount = 0;
+      document.getElementById('autoStatusBadge').textContent = 'WATCHING';
+      if (autoBuy) toggleAutoBuy();
     }
   }
 
   function toggleAutoBuy() {
-    if (!autoPredict && !autoBuy) { return; } // require predictor on first
+    if (!autoPredict && !autoBuy) { return; }
     autoBuy = !autoBuy;
     var track = document.getElementById('autoBuyTrack');
     var badge = document.getElementById('autoStatusBadge');
@@ -3606,7 +3729,7 @@
     var mode = document.getElementById('botDigitMode').value;
     if (mode === 'fixed') return parseInt(document.getElementById('botFixedDigit').value, 10) || 5;
     if (mode === 'predictor') {
-      if (predictedDigit !== null) return predictedDigit;
+      if (predictedDigit !== null && predictorConfidence >= 55) return predictedDigit;
       mode = 'least';
     }
     var best = 0, bestVal = mode === 'least' ? Infinity : -Infinity;
