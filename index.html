@@ -1798,11 +1798,12 @@
           </div>
         </div>
         <div class="predict-confidence">
-          <div class="confidence-label">CONFIDENCE</div>
+          <div class="confidence-label">ACTUAL WIN RATE</div>
           <div class="confidence-val" id="confidenceVal">—</div>
           <div class="confidence-bar-wrap">
             <div class="confidence-bar-fill" id="confidenceFill" style="width:0%"></div>
           </div>
+          <div style="font-size:9px;color:var(--muted);margin-top:4px;">Random baseline: 10% · Breakeven at 8.5x payout: 11.8%</div>
         </div>
       </div>
 
@@ -2648,21 +2649,20 @@
     var prevPredicted = predictedDigit;
     predictedDigit = best.digit;
 
-    // Confidence: scaled from the score spread
-    var topScore = best.score;
-    var minScore = scores[scores.length - 1].score;
-    var spread = topScore - minScore || 0.01;
-    var confidence = Math.min(99, Math.max(10, Math.round(((topScore - minScore) / (spread + 0.3)) * 60 + 25)));
+    // Honest stat: this game's ticks are an independent random process (that's how Deriv's
+    // volatility indices are designed), so there is no real "confidence" to compute per pick.
+    // Show the actual tracked win rate instead of a fabricated per-call score.
+    var totalTrades = tradeHistory.length;
+    var totalWins = tradeHistory.filter(function(t) { return t.won; }).length;
+    var actualWinRate = totalTrades > 0 ? Math.round((totalWins / totalTrades) * 100) : null;
 
-    // Build reason string
+    // Describe what the rule actually did, without implying it predicts anything
     var momentumPct = (best.momentum * 100).toFixed(0);
     var reason;
     if (best.momentum > 0.05) {
-      reason = '↑ Rising +' + momentumPct + '% momentum';
-    } else if (best.momentum > 0) {
-      reason = '→ Slight rise, freq ' + (best.rate * 100).toFixed(0) + '%';
+      reason = 'Selected: digit ' + best.digit + ' appeared ' + momentumPct + '% more often in the recent half-window (no predictive basis — ticks are independent)';
     } else {
-      reason = '≈ Highest recent freq ' + (best.rate * 100).toFixed(0) + '%';
+      reason = 'Selected: digit ' + best.digit + ' — highest recent frequency ' + (best.rate * 100).toFixed(0) + '% (no predictive basis — ticks are independent)';
     }
 
     // Update UI
@@ -2678,8 +2678,13 @@
       selectDigit(predictedDigit);
     }
     document.getElementById('predictReason').textContent = reason;
-    document.getElementById('confidenceVal').textContent = confidence + '%';
-    document.getElementById('confidenceFill').style.width = confidence + '%';
+    if (actualWinRate === null) {
+      document.getElementById('confidenceVal').textContent = 'No trades yet';
+      document.getElementById('confidenceFill').style.width = '0%';
+    } else {
+      document.getElementById('confidenceVal').textContent = actualWinRate + '% (' + totalTrades + ' trades)';
+      document.getElementById('confidenceFill').style.width = actualWinRate + '%';
+    }
 
     // Render trend sparkline
     renderTrendRow(scores);
