@@ -2291,6 +2291,11 @@
   }
 
   function toggleAutoBuy() {
+    // Safety gate: require explicit confirmation before auto-trading with a REAL account
+    if (!autoBuy && activeAccount && !activeAccount.isVirtual) {
+      var ok = confirm('AUTO-BUY will place REAL trades with real money on account ' + activeAccount.id + '.\n\nThis strategy has no verified statistical edge. Continue?');
+      if (!ok) { return; }
+    }
     autoBuy = !autoBuy;
     var track = document.getElementById('autoBuyTrack');
     var badge = document.getElementById('autoStatusBadge');
@@ -2901,6 +2906,16 @@
         badge.className = 'live-badge';
         badge.innerHTML = '<span class="live-dot"></span>LIVE';
       }
+    }
+    // Safety: never let AUTO-BUY carry over silently into a REAL account session —
+    // force it off and make the person re-enable it deliberately (which now requires confirmation).
+    if (!a.isVirtual && autoBuy) {
+      autoBuy = false;
+      var track = document.getElementById('autoBuyTrack');
+      var abBadge = document.getElementById('autoStatusBadge');
+      if (track) track.classList.remove('on');
+      if (abBadge) { abBadge.classList.remove('active'); abBadge.textContent = 'WATCHING'; }
+      showToast('AUTO-BUY was disabled for safety \u2014 you just connected a REAL account', 'error');
     }
     buildAccountDropdown(a.id);
     closeLoginModal();
