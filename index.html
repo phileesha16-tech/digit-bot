@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deriv Digit Match - Expert Trader Edition</title>
+<title>Deriv Digit Match - Corrected Trader Edition</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Chakra+Petch:wght@300;400;600;700&display=swap');
 
@@ -1752,7 +1752,7 @@
           <span class="status-val" id="statTicks">—</span>
         </div>
         <div class="status-row">
-          <span class="status-key">Matches</span>
+          <span class="status-key">Current Match</span>
           <span class="status-val" id="statMatches">—</span>
         </div>
         <div class="ticks-bar">
@@ -1785,7 +1785,7 @@
           </div>
         </div>
         <div class="predict-confidence">
-          <div class="confidence-label">CONFIDENCE</div>
+          <div class="confidence-label">MODEL PROB.</div>
           <div class="confidence-val" id="confidenceVal">—</div>
           <div class="confidence-bar-wrap">
             <div class="confidence-bar-fill" id="confidenceFill" style="width:0%"></div>
@@ -1843,7 +1843,7 @@
             <th>Digit</th>
             <th>Stake</th>
             <th>Ticks</th>
-            <th>Matches</th>
+            <th>Final Digit</th>
             <th>Result</th>
             <th>P&L</th>
           </tr>
@@ -1977,13 +1977,15 @@
   var currentSymbol = SYMBOLS[9];
   var tradeHistory = [];
 
-  // AI Predictor State & Expert Python-Equivalent Logic
+  // Predictor state. The displayed percentage is a normalized model probability,
+  // not a guaranteed win rate.
   var autoPredict = false;
   var autoBuy = false;
   var recentWindow = [];
   var predictedDigit = null;
   var windowSize = 10;
   var predictorConfidence = 0;
+  var currentPipDigits = 2;
   var transitionMatrix = (function() {
     var m = [];
     for(var i=0; i<10; i++) {
@@ -2024,6 +2026,11 @@
     digitHistory = [];
     freqMap = [0,0,0,0,0,0,0,0,0,0];
     recentWindow = [];
+    predictedDigit = null;
+    predictorConfidence = 0;
+    for (var r = 0; r < 10; r++) {
+      for (var c = 0; c < 10; c++) transitionMatrix[r][c] = 1;
+    }
     renderDigitHistory();
     updateFreqChart();
     document.getElementById('tickerName').textContent = sym.name;
@@ -2031,6 +2038,7 @@
     document.querySelectorAll('.symbol-btn').forEach(function(b) { b.classList.remove('active'); });
     var activeBtn = document.getElementById('sym-btn-' + sym.id);
     if (activeBtn) activeBtn.classList.add('active');
+    switchLiveTickSymbol(sym.id);
     showToast('Switched to ' + sym.name, '');
   }
 
@@ -2150,16 +2158,22 @@
     }
 
     digitHistory.unshift(lastD);
-    if (digitHistory.length > 20) digitHistory.pop();
+    freqMap[lastD]++;
+    if (digitHistory.length > 20) {
+      var removedDigit = digitHistory.pop();
+      freqMap[removedDigit] = Math.max(0, freqMap[removedDigit] - 1);
+    }
     recentWindow.unshift(lastD);
     if (recentWindow.length > windowSize) recentWindow.pop();
-    freqMap[lastD]++;
 
     renderDigitHistory();
     updateFreqChart();
 
-    if (autoPredict) { runPredictor(); }
+    // Settle/count any already-active contract before producing a new prediction.
+    // This prevents the tick used to make a prediction from also being counted as
+    // the first tick of the newly purchased contract.
     if (contract) { processTick(lastD); }
+    if (autoPredict) { runPredictor(); }
 
     if (bot && bot.running && !contract) {
       if (bot.cooldownTick) {
@@ -2187,71 +2201,86 @@
     }
   }
 
-  // --- Expert AI Predictor Python-Equivalent Engine ---
+  // --- Predictor Engine -------------------------------------------------------
+  // This produces a normalized model probability from three heuristic signals.
+  // It is intentionally not labelled as a verified confidence or win rate.
   function runPredictor() {
-    if (digitHistory.length < 3) {
-      document.getElementById('predictReason').textContent = 'Collecting initial tick data...';
+    if (digitHistory.length < 20) {
+      document.getElementById('predictReason').textContent =
+        'Calibrating on live ticks (' + digitHistory.length + '/20)...';
+      document.getElementById('confidenceVal').textContent = '—';
+      document.getElementById('confidenceFill').style.width = '0%';
       return;
     }
 
     var lastD = digitHistory[0];
-    var scores = [];
-    for (var d = 0; d <= 10; d++) { scores.push(0); }
+    var scores = new Array(10).fill(0);
 
-    // Factor 1: Markov Transition Probability Matrix
-    var rowSum = 0;
-    for (var j = 0; j <= 9; j++) { rowSum += transitionMatrix[lastD][j]; }
+    // Factor 1: Markov transition distribution (45%).
+    var rowSum = transitionMatrix[lastD].reduce(function(sum, v) { return sum + v; }, 0);
     for (var d = 0; d <= 9; d++) {
-      var transProb = transitionMatrix[lastD][d] / rowSum;
-      scores[d] += transProb * 45; // 45% weight
+      scores[d] += 0.45 * (transitionMatrix[lastD][d] / rowSum);
     }
 
-    // Factor 2: Frequency Reversion & Least-Frequent Bias
-    var totalFreq = 0;
-    for (var d = 0; d <= 9; d++) { totalFreq += freqMap[d]; }
-    if (totalFreq > 0) {
-      for (var d = 0; d <= 9; d++) {
-        var expectedFreq = totalFreq / 10;
-        var deviation = expectedFreq - freqMap[d];
-        scores[d] += (deviation / expectedFreq) * 30; // 30% weight
+    // Factor 2: rolling mean-reversion distribution (30%).
+    // Less frequent digits receive more relative weight, but all weights remain
+    // positive and are normalized to sum to one.
+    var reversionRaw = [];
+    var reversionSum = 0;
+    for (var r = 0; r <= 9; r++) {
+      var rv = 1 / (freqMap[r] + 1);
+      reversionRaw.push(rv);
+      reversionSum += rv;
+    }
+    for (var r2 = 0; r2 <= 9; r2++) {
+      scores[r2] += 0.30 * (reversionRaw[r2] / reversionSum);
+    }
+
+    // Factor 3: recency-weighted momentum distribution (25%).
+    var momentumRaw = new Array(10).fill(0);
+    var momentumSum = 0;
+    for (var i = 0; i < recentWindow.length; i++) {
+      var weight = recentWindow.length - i;
+      momentumRaw[recentWindow[i]] += weight;
+      momentumSum += weight;
+    }
+    if (momentumSum > 0) {
+      for (var m = 0; m <= 9; m++) {
+        scores[m] += 0.25 * (momentumRaw[m] / momentumSum);
       }
     }
 
-    // Factor 3: Short-Term Momentum Recency
-    for (var i = 0; i < recentWindow.length; i++) {
-      var weight = 1 - (i / recentWindow.length);
-      scores[recentWindow[i]] += weight * 25; // 25% weight
-    }
-
-    // Find best digit
     var bestDigit = 0;
-    var bestScore = -9999;
-    for (var d = 0; d <= 9; d++) {
-      if (scores[d] > bestScore) {
-        bestScore = scores[d];
-        bestDigit = d;
+    var bestScore = scores[0];
+    for (var b = 1; b <= 9; b++) {
+      if (scores[b] > bestScore) {
+        bestScore = scores[b];
+        bestDigit = b;
       }
     }
 
     predictedDigit = bestDigit;
-    predictorConfidence = Math.min(94, Math.max(42, Math.round(50 + (bestScore * 1.5))));
+    predictorConfidence = Math.round(bestScore * 1000) / 10;
 
-    // Update UI elements
     var badge = document.getElementById('predictBadge');
     badge.textContent = predictedDigit;
     badge.className = 'predict-digit-badge updated';
     setTimeout(function() { badge.classList.remove('updated'); }, 400);
 
-    document.getElementById('predictReason').textContent = 'Markov State [' + lastD + '→' + predictedDigit + '] & Mean Reversion';
-    document.getElementById('confidenceVal').textContent = predictorConfidence + '%';
-    document.getElementById('confidenceFill').style.width = predictorConfidence + '%';
+    document.getElementById('predictReason').textContent =
+      'Markov [' + lastD + '→' + predictedDigit + '] + rolling frequency + recency';
+    document.getElementById('confidenceVal').textContent = predictorConfidence.toFixed(1) + '%';
+    document.getElementById('confidenceFill').style.width =
+      Math.min(100, predictorConfidence) + '%';
 
     renderTrendRow(scores);
 
-    // Auto-buy execution if enabled
+    // Auto-buy remains opt-in. A full 20-tick calibration window is required.
     if (autoBuy && !contract && !tradeLock) {
       selectDigit(predictedDigit);
-      setTimeout(function() { placeContract(); }, 150);
+      setTimeout(function() {
+        if (autoBuy && !contract && !tradeLock) placeContract();
+      }, 150);
     }
   }
 
@@ -2259,7 +2288,7 @@
     var row = document.getElementById('trendRow');
     if (!row) return;
     row.innerHTML = '';
-    var maxScore = 1;
+    var maxScore = 0.0001;
     for (var i = 0; i <= 9; i++) { if (Math.abs(scores[i]) > maxScore) maxScore = Math.abs(scores[i]); }
 
     for (var d = 0; d <= 9; d++) {
@@ -2469,32 +2498,44 @@
     .catch(function(e) { showPanel('panelToken'); showTokenError('❌ Network error.'); });
   }
 
+  function resolvePipDigits(pipSize) {
+    var n = Number(pipSize);
+    if (Number.isInteger(n) && n >= 0 && n <= 10) return n;
+    if (isFinite(n) && n > 0 && n < 1) {
+      var s = String(n);
+      var dot = s.indexOf('.');
+      if (dot >= 0) return s.length - dot - 1;
+    }
+    return currentPipDigits || 2;
+  }
+
+  function attachDerivMessageHandler(ws) {
+    ws.onmessage = function(ev) {
+      try {
+        var m = JSON.parse(ev.data);
+        handleWsMessage(m, ws);
+        if (m.msg_type === 'tick' && m.tick && m.tick.symbol === currentSymbol.id) {
+          usingLiveTicks = true;
+          currentPipDigits = resolvePipDigits(m.tick.pip_size);
+          applyLiveTick(Number(m.tick.quote), m.tick.pip_size);
+        }
+      } catch (ex) {
+        console.error('WebSocket message error:', ex);
+      }
+    };
+  }
+
   function onAccountConnected(ws, loginid, currency, isVirtual, bal) {
     derivWs = ws;
     activeAccount = { id: loginid, currency: currency, balance: bal, isVirtual: isVirtual, token: null, ws: ws };
     derivAccounts = [{ id: loginid, currency: currency, isVirtual: isVirtual, token: null }];
     balance = bal;
-    // Subscribe to balance updates
+    attachDerivMessageHandler(ws);
+    // Subscribe only after the full message handler is installed.
     ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
-    // Subscribe to live ticks for current symbol
-    ws.send(JSON.stringify({ ticks: currentSymbol.id, subscribe: 1 }));
     document.getElementById('connectingMsg').textContent = 'CONNECTED!';
     startLiveTickFeed(null);
     onLoginSuccess();
-    ws.onmessage = function(ev) {
-      try {
-        var m = JSON.parse(ev.data);
-        // Handle all message types
-        handleWsMessage(m, ws);
-        // Live ticks from Deriv
-        if (m.msg_type === 'tick' && m.tick) {
-          if (m.tick.symbol === currentSymbol.id) {
-            usingLiveTicks = true;
-            applyLiveTick(m.tick.quote);
-          }
-        }
-      } catch(ex) { console.error('WS message error:', ex); }
-    };
     ws.onclose = function() {
       usingLiveTicks = false;
       activeAccount = null;
@@ -2534,6 +2575,7 @@
     // Handle buy error
     if (msg.msg_type === 'buy' && msg.error) {
       if (contract) { contract = null; }
+      tradeLock = false;
       document.getElementById('buyBtn').textContent = 'BUY CONTRACT';
       document.getElementById('buyBtn').classList.remove('active-contract');
       document.getElementById('buyBtn').disabled = false;
@@ -2548,7 +2590,15 @@
           contract.finished = true;
           // Update with real result from Deriv
           var won = poc.status === 'won';
+          contract.realResult = won;
           contract.matches = won ? 1 : 0;
+          var exitValue = poc.exit_tick !== undefined ? poc.exit_tick : poc.exit_spot;
+          if (exitValue !== undefined && exitValue !== null) {
+            var exitStr = Number(exitValue).toFixed(currentPipDigits);
+            contract.lastDigit = parseInt(exitStr.charAt(exitStr.length - 1), 10);
+          } else {
+            contract.lastDigit = null;
+          }
           contract.payout = won ? parseFloat(poc.payout || contract.payout) : 0;
           if (poc.balance_after !== undefined) {
             balance = parseFloat(poc.balance_after);
@@ -2788,21 +2838,10 @@
 
       ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
 
-      // Start live tick subscription
       document.getElementById('connectingMsg').textContent = 'SUBSCRIBING TO LIVE TICKS...';
+      attachDerivMessageHandler(ws);
       startLiveTickFeed(token);
-
       onLoginSuccess();
-
-      ws.onmessage = function(ev) {
-        var m = JSON.parse(ev.data);
-        if (m.msg_type === 'balance' && activeAccount) {
-          activeAccount.balance = m.balance.balance;
-          balance = parseFloat(m.balance.balance);
-          var el = document.getElementById('balance');
-          if (el) el.textContent = balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-      };
     };
 
     ws.onerror = function() {
@@ -2822,28 +2861,31 @@
 
   // ── Live Tick Feed ───────────────────────────────────────────────────────────
   function startLiveTickFeed(token) {
-    // Live tick feed via the backend WebSocket proxy
-    // For now just use demo ticks - live ticks come through the main account WebSocket
     usingLiveTicks = false;
-    // Demo ticker will run automatically via setInterval in startTicker()
+    if (!derivWs || derivWs.readyState !== WebSocket.OPEN) return;
+    try { derivWs.send(JSON.stringify({ forget_all: 'ticks' })); } catch (e) {}
+    derivWs.send(JSON.stringify({ ticks: currentSymbol.id, subscribe: 1 }));
   }
 
   function switchLiveTickSymbol(symbolId) {
-    if (!derivTickWs || derivTickWs.readyState !== WebSocket.OPEN) return;
-    // Forget previous subscription, resubscribe to new symbol
-    derivTickWs.send(JSON.stringify({ forget_all: 'ticks' }));
+    if (!derivWs || derivWs.readyState !== WebSocket.OPEN) return;
+    usingLiveTicks = false;
+    try { derivWs.send(JSON.stringify({ forget_all: 'ticks' })); } catch (e) {}
     setTimeout(function() {
-      if (derivTickWs && derivTickWs.readyState === WebSocket.OPEN) {
-        derivTickWs.send(JSON.stringify({ ticks: symbolId, subscribe: 1 }));
+      if (derivWs && derivWs.readyState === WebSocket.OPEN) {
+        derivWs.send(JSON.stringify({ ticks: symbolId, subscribe: 1 }));
       }
-    }, 300);
+    }, 150);
   }
 
-  function applyLiveTick(tickPrice) {
-    var priceStr = tickPrice.toFixed(2);
+  function applyLiveTick(tickPrice, pipSize) {
+    if (!isFinite(tickPrice)) return;
+    var digits = resolvePipDigits(pipSize);
+    currentPipDigits = digits;
+    var priceStr = Number(tickPrice).toFixed(digits);
     var lastD = parseInt(priceStr.charAt(priceStr.length - 1), 10);
     var prevPrice = price || tickPrice;
-    price = tickPrice;
+    price = Number(tickPrice);
     var change = price - prevPrice;
     var intPart = priceStr.slice(0, -1);
     document.getElementById('tickerPrice').innerHTML =
@@ -2852,15 +2894,34 @@
     var changeEl = document.getElementById('tickerChange');
     changeEl.textContent = (change >= 0 ? '+' : '') + pctChange + '%';
     changeEl.style.color = change >= 0 ? 'var(--win)' : 'var(--lose)';
+
+    if (digitHistory.length > 0) {
+      var prevD = digitHistory[0];
+      transitionMatrix[prevD][lastD]++;
+    }
+
     digitHistory.unshift(lastD);
-    if (digitHistory.length > 20) digitHistory.pop();
+    freqMap[lastD]++;
+    if (digitHistory.length > 20) {
+      var removedDigit = digitHistory.pop();
+      freqMap[removedDigit] = Math.max(0, freqMap[removedDigit] - 1);
+    }
     recentWindow.unshift(lastD);
     if (recentWindow.length > windowSize) recentWindow.pop();
-    freqMap[lastD]++;
+
     renderDigitHistory();
     updateFreqChart();
-    if (autoPredict) { runPredictor(); }
+
     if (contract) { processTick(lastD); }
+    if (autoPredict) { runPredictor(); }
+
+    if (bot && bot.running && !contract) {
+      if (bot.cooldownTick) {
+        bot.cooldownTick = false;
+      } else {
+        botPlaceTrade();
+      }
+    }
   }
 
   function reconnectDerivWs() {
@@ -2872,15 +2933,12 @@
       if (msg.msg_type === 'authorize' && !msg.error) {
         derivWs = ws;
         ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
-      }
-      if (msg.msg_type === 'balance' && activeAccount) {
-        activeAccount.balance = msg.balance.balance;
-        balance = parseFloat(msg.balance.balance);
-        var el = document.getElementById('balance');
-        if (el) el.textContent = balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        attachDerivMessageHandler(ws);
+        startLiveTickFeed(activeAccount.token);
       }
     };
     ws.onclose = function() {
+      usingLiveTicks = false;
       if (activeAccount && activeAccount.token) setTimeout(reconnectDerivWs, 5000);
     };
   }
@@ -2919,7 +2977,7 @@
     }
     buildAccountDropdown(a.id);
     closeLoginModal();
-    showToast('✓ Connected as ' + a.id + ' · Live ticks active', 'success');
+    showToast('✓ Connected as ' + a.id + ' · Waiting for live ticks', 'success');
   }
 
   function buildAccountDropdown(activeId) {
@@ -3049,6 +3107,7 @@
         balance = activeAccount.balance;
         saveToken(token, activeAccount.id);
         ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+        attachDerivMessageHandler(ws);
         startLiveTickFeed(token);
         onLoginSuccess();
       } else if (m.msg_type === 'balance' && activeAccount) {
@@ -3139,6 +3198,8 @@
         ticks: ticks,
         ticksLeft: ticks,
         matches: 0,
+        lastDigit: null,
+        fromBot: !!window._botPlacing,
         payout: parseFloat((stake * 8.5).toFixed(2)),
         startTime: new Date().toISOString(),
         id: 'CON_' + Date.now(),
@@ -3162,6 +3223,8 @@
         ticks: ticks,
         ticksLeft: ticks,
         matches: 0,
+        lastDigit: null,
+        fromBot: !!window._botPlacing,
         payout: parseFloat((stake * 8.5).toFixed(2)),
         startTime: new Date().toISOString(),
         id: 'CON_' + Date.now(),
@@ -3210,6 +3273,11 @@
               contract.finished = true;
               contract.realResult = (data.status === 'won');
               contract.matches = data.status === 'won' ? 1 : 0;
+              if (data.exitDigit !== undefined && data.exitDigit !== null) {
+                contract.lastDigit = parseInt(data.exitDigit, 10);
+              } else {
+                contract.lastDigit = null;
+              }
               contract.payout = data.status === 'won' ? parseFloat(data.payout || contract.payout) : 0;
               if (data.balanceAfter !== undefined) {
                 balance = parseFloat(data.balanceAfter);
@@ -3228,7 +3296,8 @@
 
   function processTick(digit) {
     if (!contract) return;
-    if (digit === contract.digit) contract.matches++;
+    contract.lastDigit = digit;
+    contract.matches = digit === contract.digit ? 1 : 0;
     if (contract.ticksLeft > 0) contract.ticksLeft--;
     updateContractStatus();
     updateXml();
@@ -3236,14 +3305,27 @@
   }
 
   function endContract() {
+    if (!contract) return;
     tradeLock = false;
-    var won = contract.realResult !== undefined ? contract.realResult : contract.matches > 0;
+    // DIGITMATCH settles against the last digit of the final tick, not whether
+    // the digit appeared at any point during the contract.
+    var won = contract.realResult !== undefined
+      ? contract.realResult
+      : contract.lastDigit === contract.digit;
     var payout = won ? contract.payout : 0;
     var pnl = won ? payout - contract.stake : -contract.stake;
     // Real trades already have the correct post-settlement balance from the backend
     // (set just before this runs) — only apply the payout locally for simulated trades.
     if (won && contract.realResult === undefined) { balance += payout; }
     updateBalance();
+    if (contract.fromBot) {
+      bot.trades++;
+      if (won) bot.wins++; else bot.losses++;
+      bot.netPnl += pnl;
+      bot.cooldownTick = true;
+      updateBotStats();
+      botLog((won ? 'WIN ' : 'LOSS ') + (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(2), won ? 'win' : 'loss');
+    }
     recordTrade(contract, won, pnl);
     showResult(won, payout, contract);
 
@@ -3265,7 +3347,8 @@
     document.getElementById('statPredicted').textContent = 'Digit ' + contract.digit;
     document.getElementById('statStake').textContent = '$' + contract.stake.toFixed(2);
     document.getElementById('statTicks').textContent = contract.ticksLeft;
-    document.getElementById('statMatches').textContent = contract.matches;
+    document.getElementById('statMatches').textContent =
+      contract.lastDigit === null ? '—' : (contract.lastDigit === contract.digit ? 'YES' : 'NO');
     var pct = ((contract.ticks - contract.ticksLeft) / contract.ticks) * 100;
     document.getElementById('ticksFill').style.width = pct + '%';
   }
@@ -3276,10 +3359,14 @@
     var icon = document.getElementById('resultIcon');
     var amount = document.getElementById('resultAmount');
     var info = document.getElementById('resultInfo');
+    var pnl = won ? payout - c.stake : -c.stake;
     card.className = 'result-card ' + (won ? 'win' : 'lose');
     icon.textContent = won ? '🎯' : '⚠️';
-    amount.textContent = won ? '+$' + payout.toFixed(2) : '-$' + c.stake.toFixed(2);
-    info.textContent = won ? 'Digit ' + c.digit + ' matched successfully!' : 'Digit ' + c.digit + ' did not match.';
+    amount.textContent = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(2);
+    var finalDigit = c.lastDigit === null || c.lastDigit === undefined ? 'server-settled' : c.lastDigit;
+    info.textContent = won
+      ? 'Final digit ' + finalDigit + ' matched target ' + c.digit + '.'
+      : 'Final digit ' + finalDigit + ' did not match target ' + c.digit + '.';
     overlay.classList.add('show');
   }
 
@@ -3291,7 +3378,8 @@
     var now = new Date();
     var timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
     tradeHistory.unshift({
-      time: timeStr, digit: c.digit, stake: c.stake, ticks: c.ticks, matches: c.matches, won: won, pnl: pnl, id: c.id
+      time: timeStr, digit: c.digit, stake: c.stake, ticks: c.ticks,
+      matches: c.matches, lastDigit: c.lastDigit, won: won, pnl: pnl, id: c.id
     });
     renderHistory();
   }
@@ -3314,7 +3402,8 @@
         '<td><div class="trade-digit-pill">' + t.digit + '</div></td>' +
         '<td style="font-family:\'Share Tech Mono\',monospace;">$' + t.stake.toFixed(2) + '</td>' +
         '<td style="color:var(--dim);font-family:\'Share Tech Mono\',monospace;">' + t.ticks + '</td>' +
-        '<td style="color:var(--dim);font-family:\'Share Tech Mono\',monospace;">' + t.matches + '/' + t.ticks + '</td>' +
+        '<td style="color:var(--dim);font-family:\'Share Tech Mono\',monospace;">' +
+          (t.lastDigit === null || t.lastDigit === undefined ? '—' : t.lastDigit) + '</td>' +
         '<td><span class="trade-result-badge ' + badgeClass + '">' + badgeText + '</span></td>' +
         '<td class="trade-pnl ' + pnlClass + '">' + pnlSign + '$' + Math.abs(t.pnl).toFixed(2) + '</td>' +
       '</tr>';
@@ -3462,9 +3551,9 @@
     document.getElementById('stakeInput').value = baseStake;
     document.getElementById('ticksInput').value = document.getElementById('botTicks').value;
 
+    window._botPlacing = true;
     placeContract();
-    bot.trades++;
-    updateBotStats();
+    window._botPlacing = false;
   }
 
   function updateBotStats() {
